@@ -1,0 +1,1691 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111315">
+  <!-- PWA: manifest makes the page installable; icon.svg is the app icon. -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="A little focus. An instant connection. Scan QR codes, keep your history, and bookmark what matters. All on your device.">
+  <meta name="keywords" content="QR scanner, QR code reader, barcode scanner, QR history, bookmark QR codes, private scanner, on-device QR reader">
+  <meta name="author" content="Lens">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Lens — QR Scanner">
+  <meta property="og:description" content="A little focus. An instant connection. Scan QR codes, keep your history, and bookmark what matters — all on your device.">
+  <meta property="og:site_name" content="Lens">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Lens — QR Scanner">
+  <meta name="twitter:description" content="Scan QR codes, keep your history, and bookmark what matters. All on your device.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Lens",
+    "description": "A little focus. An instant connection. Scan QR codes, keep your history, and bookmark what matters. All on your device.",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Any",
+    "browserRequirements": "Requires JavaScript and camera access for live scanning",
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "featureList": [
+      "Live camera QR code scanning",
+      "Scan history and bookmarks kept on your device",
+      "Private — everything stays on your device"
+    ]
+  }
+  </script>
+  <title>Lens — QR Scanner</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%2317191c'/%3E%3Cpath d='M15 9h-4a2 2 0 0 0-2 2v4m16-6h4a2 2 0 0 1 2 2v4M9 25v4a2 2 0 0 0 2 2h4m10 0h4a2 2 0 0 0 2-2v-4' fill='none' stroke='%23f3f1e9' stroke-width='2.5'/%3E%3Cpath d='M14 20h12' stroke='%23ff655c' stroke-width='2.5'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #111315;
+      --panel: #1c1e21;
+      --ink: #f1f0eb;
+      --muted: #9b9d9f;
+      --faint: #666a6d;
+      --line: #ffffff12;
+      --red: #ff6a60;
+      --green: #a2d0ae;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+    button, input, textarea { font: inherit; color: inherit; }
+    button, a, input { -webkit-tap-highlight-color: transparent; }
+    button, a { touch-action: manipulation; }
+    button { cursor: pointer; }
+    button:disabled { cursor: default; }
+    button, input, textarea, a { outline: none; }
+    :focus-visible { outline: 2px solid var(--red); outline-offset: 4px; }
+    input:focus-visible, textarea:focus-visible { outline-offset: 2px; }
+    a { color: inherit; text-decoration: none; }
+    button { border: 0; }
+    svg { width: 22px; height: 22px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .app { isolation: isolate; position: relative; height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
+    .ambient { position: fixed; inset: 0; z-index: -3; pointer-events: none; background: radial-gradient(ellipse at 50% 42%, #292e2d77 0%, #191d1e33 36%, transparent 70%); }
+    .ambient::before { content: ""; position: absolute; inset: 0; opacity: .24; background-image: radial-gradient(#bfc4c12e .7px, transparent .7px); background-size: 24px 24px; mask-image: radial-gradient(ellipse at center, #000, transparent 72%); }
+    .ambient::after { content: ""; width: min(66vw, 780px); aspect-ratio: 1; position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); border: 1px solid #ffffff04; border-radius: 50%; box-shadow: 0 0 0 110px #ffffff01, 0 0 0 220px #ffffff01; }
+    #camera { position: fixed; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform-origin: center; transition: opacity .2s; pointer-events: none; }
+    .app[data-camera="live"] #camera { opacity: 1; }
+    .camera-shade { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(180deg, #090c0ee6, #090c0e20 32%, #090c0e20 57%, #090c0ee8); opacity: 0; }
+    .app[data-camera="live"] .camera-shade { opacity: 1; }
+    .app-header { flex-shrink: 0; min-height: 96px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: max(24px, env(safe-area-inset-top)) 40px 20px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark { width: 37px; height: 37px; display: grid; place-items: center; color: var(--ink); }
+    .brand-mark svg { width: 35px; height: 35px; stroke-width: 1.7; }
+    .brand-name { font-size: 29px; font-weight: 650; line-height: 1; letter-spacing: -1.4px; }
+    .header-actions { display: flex; align-items: center; gap: 20px; }
+    .icon-button { display: inline-flex; align-items: center; justify-content: center; background: #ffffff04; border: 1px solid #ffffff14; border-radius: 50%; width: 40px; height: 40px; color: #b9bcbc; transition: color .15s, background .15s; }
+    .icon-button:hover { background: #ffffff0c; color: var(--ink); }
+    .icon-button svg { width: 19px; height: 19px; }
+    .pause-button { gap: 7px; width: auto; min-width: 40px; padding: 0 13px; border-radius: 24px; font-size: 11px; }
+    .pause-button svg { width: 14px; height: 14px; }
+    .storage-notice { flex-shrink: 0; margin: 0 24px 8px; padding: 9px 14px; background: #352d20; border: 1px solid #655132; border-radius: 9px; color: #e0c38e; font-size: 12px; text-align: center; }
+    main { flex: 1; min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: #3a3d40 transparent; }
+    .scan-view { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 20px 24px 22px; }
+    .scanner-layout { display: flex; flex-direction: column; align-items: center; gap: 26px; width: 100%; }
+    .scan-heading { text-align: center; }
+    .eyebrow { display: flex; align-items: center; justify-content: center; gap: 7px; margin: 0 0 10px; font-size: 9px; letter-spacing: 2px; font-weight: 600; color: #a3a7a5; text-transform: uppercase; }
+    h1 { margin: 0; font-size: 27px; letter-spacing: -.9px; font-weight: 550; line-height: 1.3; }
+    h1:focus, .dialog-heading h2:focus { outline: none; }
+    .frame-wrap { width: min(440px, calc(100vw - 56px), calc(100dvh - 360px)); aspect-ratio: 1; position: relative; flex-shrink: 0; }
+    .scan-frame { position: absolute; inset: 0; border: 1px solid #ffffff0b; border-radius: 22px; background: #0e111246; box-shadow: 0 15px 90px #00000012; }
+    .app[data-camera="live"] .scan-frame { background: transparent; box-shadow: 0 0 0 9999px #00000022; }
+    .corner { position: absolute; width: 40px; height: 40px; border: 2px solid #d8dbd5; z-index: 2; pointer-events: none; }
+    .corner.tl { left: -1px; top: -1px; border-right: 0; border-bottom: 0; border-radius: 21px 0 0; }
+    .corner.tr { right: -1px; top: -1px; border-left: 0; border-bottom: 0; border-radius: 0 21px 0 0; }
+    .corner.bl { left: -1px; bottom: -1px; border-right: 0; border-top: 0; border-radius: 0 0 0 21px; }
+    .corner.br { right: -1px; bottom: -1px; border-left: 0; border-top: 0; border-radius: 0 0 21px; }
+    .frame-tick { position: absolute; background: #ffffff1f; pointer-events: none; }
+    .frame-tick.top, .frame-tick.bottom { width: 1px; height: 7px; left: 50%; }
+    .frame-tick.top { top: 0; } .frame-tick.bottom { bottom: 0; }
+    .frame-tick.left, .frame-tick.right { height: 1px; width: 7px; top: 50%; }
+    .frame-tick.left { left: 0; } .frame-tick.right { right: 0; }
+    .scan-line { position: absolute; z-index: 1; height: 1.5px; left: 12px; right: 12px; top: 20px; background: #fc665e; box-shadow: 0 0 11px #ff5b5370, 0 0 2px #ff746e; opacity: .65; pointer-events: none; }
+    .scan-line::before { content: ""; position: absolute; bottom: 0; left: 0; right: 0; height: 34px; background: linear-gradient(transparent, #ff5b5312); }
+    .app[data-camera="live"] .scan-line { opacity: 1; animation: scanning 3.2s ease-in-out infinite alternate; }
+    @keyframes scanning { from { top: 20px; } to { top: calc(100% - 21px); } }
+    .camera-gate { position: absolute; z-index: 3; inset: 22px 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+    .gate-icon { display: grid; place-items: center; width: 55px; height: 55px; margin: 0 0 18px; border: 1px solid #ffffff14; border-radius: 17px; background: linear-gradient(145deg, #ffffff08, #ffffff02); color: #c5cac3; }
+    .gate-icon svg { width: 26px; height: 26px; }
+    .camera-gate h2 { font-size: 20px; letter-spacing: -.5px; line-height: 1.3; font-weight: 550; margin: 0 0 9px; }
+    .camera-gate p { max-width: 235px; color: var(--muted); font-size: 12px; line-height: 1.7; margin: 0 0 21px; text-wrap: pretty; }
+    .button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 11px 18px; border-radius: 11px; border: 1px solid #ffffff15; font-size: 12px; font-weight: 550; line-height: 1.4; background: #ffffff05; color: var(--ink); transition: background .15s, border-color .15s, transform .15s; }
+    .button:hover { background: #ffffff0d; border-color: #ffffff29; }
+    .button:active { transform: translateY(1px); }
+    .button svg { width: 17px; height: 17px; }
+    .button.primary { background: #eaece5; border-color: #eaece5; color: #202521; }
+    .button.primary:hover { background: #fff; border-color: #fff; }
+    .button:disabled { opacity: .4; transform: none; }
+    .button.quiet { border-color: transparent; color: #b4b8b5; background: transparent; }
+    .button.danger { color: #ffc0b9; background: #633b3566; border-color: #c3776b40; }
+    .gate-button { min-width: 164px; }
+    .gate-footnote { margin-top: 13px; color: #818783; font-size: 10px; }
+    .busy .gate-icon svg { animation: breathe 1.2s ease-in-out infinite alternate; }
+    @keyframes breathe { to { opacity: .3; transform: scale(.92); } }
+    .scan-tools { display: flex; flex-direction: column; align-items: center; gap: 19px; position: relative; z-index: 4; }
+    .tool-row { display: flex; align-items: flex-start; gap: 23px; }
+    .tool { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+    .tool-label { color: #909793; font-size: 10px; line-height: 1.2; }
+    .round-control { display: inline-flex; align-items: center; justify-content: center; width: 47px; height: 47px; background: #252a28bb; border: 1px solid #ffffff12; border-radius: 50%; color: #ced1cb; backdrop-filter: blur(16px); transition: background .15s; }
+    .round-control:hover:not(:disabled) { background: #3b413c; }
+    .round-control:disabled { color: #656c66; background: #22272499; border-color: #ffffff09; }
+    .round-control[aria-pressed="true"] { color: #24291f; background: #e8e9c9; border-color: #e8e9c9; }
+    .round-control svg { width: 19px; height: 19px; }
+    .zoom-control { display: flex; align-items: center; height: 47px; background: #252a28bb; border: 1px solid #ffffff12; border-radius: 28px; backdrop-filter: blur(16px); }
+    .zoom-control button { height: 43px; width: 43px; display: grid; place-items: center; background: transparent; border-radius: 50%; color: #ced1cb; }
+    .zoom-control button:hover:not(:disabled) { background: #ffffff08; }
+    .zoom-control button:disabled { color: #656c66; }
+    .zoom-control button svg { width: 16px; height: 16px; }
+    #zoom-value { width: 48px; font-size: 12px; font-weight: 550; font-variant-numeric: tabular-nums; }
+    .upload-button { gap: 9px; min-height: 36px; font-size: 12px; border: 0; padding: 6px 13px; background: transparent; color: #c8ccc7; }
+    .upload-button:hover { background: #ffffff08; }
+    .upload-button svg { width: 16px; height: 16px; color: #aeb7ad; }
+    .upload-button .upload-arrow { width: 12px; height: 12px; color: #737b75; margin-left: 4px; }
+    .scan-caption { height: 16px; margin: -8px 0 0; font-size: 10px; color: #8d9590; text-align: center; }
+    .app-nav { position: relative; z-index: 5; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding: 14px 20px max(26px, env(safe-area-inset-bottom)); }
+    .nav-dock { display: flex; align-items: center; gap: 5px; padding: 6px; border-radius: 19px; border: 1px solid #ffffff12; background: #202326e8; box-shadow: 0 8px 30px #00000017; backdrop-filter: blur(20px); }
+    .nav-link { display: flex; align-items: center; justify-content: center; gap: 9px; height: 44px; min-width: 130px; padding: 0 16px; color: #979c9d; font-size: 12px; border-radius: 13px; transition: background .15s, color .15s; }
+    .nav-link svg { width: 18px; height: 18px; }
+    .nav-link:hover { color: #e8ebe5; background: #ffffff05; }
+    .nav-link[aria-current="page"] { background: #e9ece5; color: #2c332c; font-weight: 600; box-shadow: 0 2px 8px #00000012; }
+    .nav-count { min-width: 16px; height: 16px; padding: 0 4px; display: inline-flex; justify-content: center; align-items: center; border-radius: 5px; background: #ffffff0b; color: #9fa49e; font-size: 9px; }
+    .nav-link[aria-current="page"] .nav-count { background: #29322413; color: #52614e; }
+    .library-view { width: 100%; min-height: 100%; padding: 40px 36px 20px; }
+    .library-inner { max-width: 830px; margin: 0 auto; }
+    .library-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 31px; }
+    .library-header h1 { font-size: 34px; letter-spacing: -1.2px; font-weight: 550; }
+    .clear-button { align-self: flex-end; color: #a5aaa6; font-size: 11px; padding: 10px 13px; }
+    .search-box { height: 49px; border: 1px solid #ffffff13; background: #ffffff03; display: flex; align-items: center; gap: 12px; border-radius: 12px; padding: 0 16px; }
+    .search-box:focus-within { border-color: #929e8066; background: #ffffff05; }
+    .search-box > svg { width: 18px; height: 18px; color: #838a85; }
+    .search-box input { width: 100%; height: 100%; background: transparent; border: 0; outline: none; font-size: 13px; }
+    .search-box input::placeholder { color: #767d77; }
+    .search-clear { width: 30px; height: 32px; color: #949c95; background: transparent; display: grid; place-items: center; border-radius: 6px; }
+    .search-clear svg { width: 15px; height: 15px; }
+    .library-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 21px 0 28px; }
+    .filters { display: flex; gap: 7px; }
+    .filter { padding: 7px 14px; border-radius: 8px; background: transparent; color: #939c94; font-size: 11px; min-height: 35px; border: 1px solid transparent; }
+    .filter:hover { background: #ffffff06; }
+    .filter[aria-pressed="true"] { background: #d9e5c90e; color: #d9e2d2; border-color: #d9e5c919; }
+    .results-count { font-size: 10px; color: #7c857e; white-space: nowrap; }
+    .scan-list { list-style: none; padding: 0; margin: 0; }
+    .date-divider { display: flex; align-items: center; gap: 13px; color: #88918a; font-size: 10px; letter-spacing: .5px; padding: 7px 0 12px; margin-top: 21px; }
+    .date-divider:first-child { margin-top: 0; }
+    .date-divider::after { content: ""; height: 1px; background: #ffffff0a; flex: 1; }
+    .scan-row { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #ffffff0b; border-radius: 8px; }
+    .scan-row:hover { background: #ffffff04; }
+    .row-open { display: flex; align-items: center; flex: 1; min-width: 0; gap: 16px; padding: 18px 6px 18px 3px; background: transparent; text-align: left; border-radius: 9px; }
+    .row-icon { width: 43px; height: 45px; border: 1px solid #a1b99516; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #bbd2aa08; color: #a6b29c; flex-shrink: 0; }
+    .row-icon.data { color: #a5adc0; background: #b5c2df08; border-color: #b5c2df18; }
+    .row-icon svg { width: 20px; height: 20px; }
+    .row-content { display: block; flex: 1; min-width: 0; }
+    .row-title { display: block; font-size: 14px; color: #e0e4dd; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .row-preview { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 3px; color: #8a948d; font-size: 11px; }
+    .row-meta { display: block; margin-top: 7px; color: #727d75; font-size: 10px; }
+    .row-save { width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center; border-radius: 11px; color: #7c877e; background: transparent; margin-right: 5px; }
+    .row-save:hover { background: #ffffff07; color: #c5d1bf; }
+    .row-save svg { width: 18px; height: 18px; }
+    .row-save[aria-pressed="true"] { color: #d6ddc4; }
+    .row-save[aria-pressed="true"] svg { fill: #d6ddc426; }
+    .empty-state { min-height: 285px; padding: 46px 16px 35px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+    .empty-icon { width: 76px; height: 76px; display: grid; place-items: center; color: #939f91; background: radial-gradient(circle at 40% 30%, #29312b, #1b211e); border: 1px solid #ffffff0a; border-radius: 24px; margin-bottom: 25px; transform: rotate(-5deg); box-shadow: 0 10px 40px #0000000e; }
+    .empty-icon svg { width: 29px; height: 29px; transform: rotate(5deg); stroke-width: 1.3; }
+    .empty-state h2 { margin: 0 0 9px; font-size: 20px; font-weight: 500; letter-spacing: -.5px; }
+    .empty-state p { color: #8b968d; font-size: 12px; max-width: 290px; line-height: 1.8; margin: 0 0 23px; }
+    dialog { color: var(--ink); border: 1px solid #ffffff1a; background: #1b1e20; width: min(460px, calc(100vw - 36px)); max-height: min(860px, calc(100dvh - 48px)); padding: 29px; border-radius: 23px; box-shadow: 0 30px 120px #0008; overflow: auto; scrollbar-width: thin; }
+    dialog::backdrop { background: #070a0cb8; backdrop-filter: blur(8px); }
+    dialog[open] { animation: dialog-in .2s ease-out; }
+    @keyframes dialog-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+    .dialog-heading h2 { font-size: 24px; font-weight: 550; letter-spacing: -.8px; line-height: 1.3; margin: 0; overflow-wrap: anywhere; }
+    .dialog-heading .icon-button { width: 32px; height: 32px; flex-shrink: 0; margin: -7px -8px 0 0; background: transparent; border: 0; }
+    .dialog-heading .eyebrow { justify-content: flex-start; color: var(--green); margin-bottom: 10px; font-size: 9px; letter-spacing: 1.5px; }
+    .dialog-heading .eyebrow svg { width: 13px; height: 13px; }
+    .result-type { display: flex; align-items: center; gap: 8px; margin: 0 0 9px; color: #a9b5a6; font-size: 11px; }
+    .result-type svg { width: 14px; height: 14px; }
+    .result-value { display: block; width: 100%; min-height: 130px; max-height: 280px; padding: 15px; border: 1px solid #ffffff13; border-radius: 12px; background: #0e121442; color: #d8dfd5; resize: vertical; font: 12px/1.8 var(--mono); word-break: break-all; }
+    .result-meta { margin: 10px 0 23px; color: #7f8a81; font-size: 10px; }
+    .result-open { width: 100%; margin-bottom: 10px; }
+    .result-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .result-actions .button { min-width: 0; }
+    .result-actions .button[aria-pressed="true"] { background: #c7dab511; color: #d3e1c5; border-color: #c7dab52b; }
+    .result-actions .button[aria-pressed="true"] svg { fill: #c7dab526; }
+    .copy-status { margin: 12px 0 0; color: #b3c5a8; font-size: 11px; line-height: 1.6; }
+    .link-note { color: #8d978f; text-align: center; font-size: 10px; margin: 13px 0 0; }
+    .result-footer { padding-top: 19px; margin-top: 23px; border-top: 1px solid #ffffff0c; }
+    .result-footer .button { width: 100%; }
+    .help-intro, .confirm-description { color: #9da89f; font-size: 13px; line-height: 1.8; margin: 0 0 23px; }
+    .help-steps { display: flex; flex-direction: column; gap: 22px; padding: 0; margin: 0 0 26px; list-style: none; counter-reset: help; }
+    .help-steps li { display: flex; gap: 14px; counter-increment: help; }
+    .help-steps li::before { content: counter(help, decimal-leading-zero); font: 11px var(--mono); color: #8d9a86; padding-top: 4px; }
+    .help-steps strong { display: block; font-size: 13px; font-weight: 500; margin: 0 0 5px; }
+    .help-steps p { margin: 0; color: #909c93; font-size: 12px; line-height: 1.7; }
+    .help-privacy { border-top: 1px solid var(--line); padding-top: 19px; color: #8d9b8f; font-size: 11px; line-height: 1.8; }
+    .help-privacy strong { display: flex; align-items: center; gap: 7px; color: #c0cbbb; font-weight: 500; margin-bottom: 7px; }
+    .help-privacy svg { width: 14px; height: 14px; }
+    .help-privacy p { margin: 6px 0 0; }
+    .dialog-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+    .toast { position: fixed; z-index: 20; bottom: calc(109px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); padding: 12px 18px; border: 1px solid #ffffff1c; border-radius: 12px; background: #30392ff5; color: #e3eddb; font-size: 12px; box-shadow: 0 8px 24px #0003; max-width: calc(100vw - 32px); width: max-content; pointer-events: none; text-align: center; }
+    .no-script { position: fixed; z-index: 30; inset: 20px 20px auto; padding: 20px; background: #3d3025; color: #fff; border: 1px solid #a5794e; border-radius: 12px; }
+    @media (min-width: 1400px) and (min-height: 850px) { .scanner-layout { gap: 29px; } .scan-tools { gap: 22px; } }
+    @media (max-width: 600px) {
+      .app-header { min-height: 84px; padding: max(21px, env(safe-area-inset-top)) 23px 17px; }
+      .brand { gap: 8px; } .brand-mark, .brand-mark svg { width: 32px; height: 32px; }
+      .brand-name { font-size: 27px; }
+      .header-actions { gap: 12px; }
+      .icon-button { width: 36px; height: 36px; } .pause-button { padding: 0; } .pause-button span { display: none; }
+      .scan-view { padding: 14px 18px 16px; }
+      .scanner-layout { gap: 24px; }
+      h1 { font-size: 25px; }
+      .frame-wrap { width: min(440px, calc(100vw - 40px), calc(100dvh - 330px)); }
+      .camera-gate h2 { font-size: 19px; }
+      .tool-row { gap: 22px; } .scan-tools { gap: 17px; }
+      .app-nav { padding: 12px 16px max(22px, env(safe-area-inset-bottom)); }
+      .nav-dock { width: min(390px, 100%); gap: 3px; padding: 5px; }
+      .nav-link { min-width: 0; padding: 0 11px; flex: 1; gap: 7px; font-size: 11px; }
+      .nav-count { display: none; }
+      .library-view { padding: 26px 23px 12px; }
+      .library-header { margin-bottom: 25px; gap: 12px; }
+      .library-header h1 { font-size: 29px; }
+      .clear-button { padding: 10px; min-width: 42px; } .clear-button span { display: none; }
+      .library-toolbar { margin: 19px 0 22px; }
+      .filter { padding: 7px 12px; } .results-count { font-size: 9px; }
+      .row-open { gap: 12px; padding: 16px 0; } .row-icon { width: 39px; height: 42px; }
+      .row-title { font-size: 13px; } .row-save { margin-right: 0; width: 38px; }
+      .scan-row { gap: 5px; }
+      .empty-state { min-height: 280px; padding-top: 36px; }
+      dialog { padding: 24px; width: calc(100vw - 24px); border-radius: 22px; max-height: calc(100dvh - 32px); }
+      #result-dialog { margin: auto auto max(12px, env(safe-area-inset-bottom)); }
+      .dialog-heading h2 { font-size: 23px; }
+      .storage-notice { margin: 0 15px 5px; font-size: 11px; padding: 8px 12px; }
+      .toast { bottom: calc(96px + env(safe-area-inset-bottom)); }
+    }
+    @media (max-height: 720px) and (orientation: portrait) {
+      .app-header { min-height: 65px; padding-top: max(14px, env(safe-area-inset-top)); padding-bottom: 11px; }
+      .scan-view { padding-top: 8px; padding-bottom: 8px; }
+      .scanner-layout { gap: 17px; } h1 { font-size: 22px; }
+      .frame-wrap { width: min(340px, calc(100vw - 40px), calc(100dvh - 300px)); }
+      .camera-gate { inset: 20px 12px; } .gate-icon { width: 38px; height: 38px; border-radius: 11px; margin-bottom: 10px; }
+      .gate-icon svg { width: 20px; height: 20px; } .camera-gate h2 { font-size: 17px; margin-bottom: 6px; }
+      .app[data-camera="error"] .gate-icon { display: none; }
+      .camera-gate p { font-size: 11px; line-height: 1.5; margin-bottom: 12px; max-width: 205px; }
+      .gate-footnote { display: none; } .gate-button { min-height: 40px; font-size: 11px; min-width: 145px; }
+      .scan-tools { gap: 11px; } .tool { gap: 6px; } .round-control { width: 43px; height: 43px; }
+      .zoom-control { height: 43px; } .zoom-control button { height: 39px; }
+      .scan-caption { display: none; } .app-nav { padding-top: 8px; padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+      .nav-link { height: 42px; }
+    }
+    @media (max-height: 520px) and (orientation: landscape) {
+      .app-header { min-height: 58px; padding: max(10px, env(safe-area-inset-top)) 25px 8px; }
+      .brand-name { font-size: 25px; } .brand-mark, .brand-mark svg { width: 30px; height: 30px; }
+      .scan-view { padding: 10px 20px; }
+      .scanner-layout { width: auto; display: grid; grid-template-columns: auto 205px; grid-template-rows: auto auto; gap: 15px 38px; }
+      .scan-heading { grid-column: 2; grid-row: 1; align-self: end; }
+      .scan-heading h1 { font-size: 22px; }
+      .frame-wrap { grid-column: 1; grid-row: 1 / 3; width: min(300px, calc(100dvh - 120px)); }
+      .scan-tools { grid-column: 2; grid-row: 2; align-self: start; gap: 13px; }
+      .tool-row { gap: 12px; } .round-control { width: 42px; height: 42px; }
+      .zoom-control { height: 42px; } .zoom-control button { width: 31px; height: 38px; } #zoom-value { width: 36px; }
+      .scan-caption, .gate-footnote { display: none; }
+      .camera-gate { inset: 18px 12px; } .gate-icon { width: 36px; height: 36px; margin-bottom: 10px; border-radius: 11px; }
+      .gate-icon svg { width: 20px; height: 20px; } .camera-gate h2 { font-size: 17px; margin-bottom: 6px; }
+      .app[data-camera="error"] .gate-icon { display: none; }
+      .camera-gate p { font-size: 11px; line-height: 1.5; margin-bottom: 12px; }
+      .gate-button { min-height: 39px; font-size: 11px; }
+      .app-nav { padding: 7px 20px max(10px, env(safe-area-inset-bottom)); }
+      .nav-dock { padding: 4px; border-radius: 14px; } .nav-link { height: 37px; border-radius: 10px; }
+      .library-view { padding-top: 18px; } .library-header { margin-bottom: 18px; }
+      .toast { bottom: 72px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+      .app[data-camera="live"] .scan-line { top: 50%; }
+    }
+  </style>
+</head>
+<body>
+  <svg class="sr-only" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <symbol id="i-scan" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3M7 12h10"/></symbol>
+      <symbol id="i-camera" viewBox="0 0 24 24"><path d="m8 5 1.5-2h5L16 5h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="4"/></symbol>
+      <symbol id="i-flash" viewBox="0 0 24 24"><path d="m13 2-8 12h6l-1 8 9-13h-6Z"/></symbol>
+      <symbol id="i-flip" viewBox="0 0 24 24"><path d="M20 9a8 8 0 0 0-14-3L3 9m0-5v5h5m-4 6a8 8 0 0 0 14 3l3-3m-5 0h5v5"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+      <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 10a9 9 0 1 1 1 7M3 4v6h6m3-3v5l3 2"/></symbol>
+      <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17l-6-4-6 4Z"/></symbol>
+      <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 16-6-6L3 21"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="m10 13 4-4m-6 7-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 1 1-1a4 4 0 1 1 6 6l-4 4a4 4 0 0 1-6 0" transform="translate(1 0)"/></symbol>
+      <symbol id="i-text" viewBox="0 0 24 24"><path d="M8 3H5a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8l-5-5H8Zm7 0v5h5M8 12h8m-8 4h6"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.1"/></symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 5v14m6-14v14" stroke-width="2.8"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3"/></symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 3h7v7m-1-6-9 9m0-9H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-6"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></symbol>
+    </defs>
+  </svg>
+  <div class="app" id="app" data-camera="idle">
+    <div class="ambient" aria-hidden="true"></div>
+    <video id="camera" autoplay muted playsinline aria-hidden="true"></video>
+    <div class="camera-shade" aria-hidden="true"></div>
+    <header class="app-header">
+      <a class="brand" href="#scan" aria-label="Lens, scanner home">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3"/><path d="M7 12h10" stroke="#ff6a60"/></svg></span>
+        <span class="brand-name">lens</span>
+      </a>
+      <div class="header-actions">
+        <button class="icon-button pause-button" id="pause-camera" aria-label="Pause camera" title="Pause camera" hidden><svg aria-hidden="true"><use href="#i-pause"/></svg><span>Pause</span></button>
+        <button class="icon-button" id="help-button" aria-label="Help and privacy" title="Help and privacy"><svg aria-hidden="true"><use href="#i-info"/></svg></button>
+      </div>
+    </header>
+    <div class="storage-notice" id="storage-notice" role="status" hidden></div>
+    <main id="main">
+      <section class="scan-view" id="scan-view" aria-labelledby="scan-title">
+        <div class="scanner-layout">
+          <div class="scan-heading">
+            <p class="sr-only" role="status" id="camera-status">Ready when you are</p>
+            <h1 id="scan-title" tabindex="-1">Scan a QR code</h1>
+          </div>
+          <div class="frame-wrap" id="frame-wrap">
+            <div class="scan-frame" id="scan-frame" aria-hidden="true">
+              <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+              <span class="frame-tick top"></span><span class="frame-tick bottom"></span><span class="frame-tick left"></span><span class="frame-tick right"></span>
+              <span class="scan-line"></span>
+            </div>
+            <div class="camera-gate" id="camera-gate">
+              <div class="gate-icon"><svg aria-hidden="true"><use href="#i-camera"/></svg></div>
+              <h2 id="gate-title">A little focus. That’s it.</h2>
+              <p id="gate-description">Enable your camera and point it at a QR code. We’ll take it from there.</p>
+              <button class="button primary gate-button" id="camera-button"><svg aria-hidden="true"><use href="#i-camera"/></svg><span>Enable camera</span></button>
+              <span class="gate-footnote">Your camera feed stays private.</span>
+            </div>
+          </div>
+          <div class="scan-tools">
+            <div class="tool-row">
+              <div class="tool">
+                <button class="round-control" id="flash-button" aria-label="Turn flash on" aria-pressed="false" title="Enable the camera to use flash" disabled><svg aria-hidden="true"><use href="#i-flash"/></svg></button>
+                <span class="tool-label" id="flash-label">Flash off</span>
+              </div>
+              <div class="tool">
+                <div class="zoom-control" role="group" aria-label="Camera zoom">
+                  <button id="zoom-out" aria-label="Zoom out" title="Zoom out" disabled><svg aria-hidden="true"><use href="#i-minus"/></svg></button>
+                  <button id="zoom-value" aria-label="Zoom 1 times. Reset zoom" title="Reset zoom" disabled>1×</button>
+                  <button id="zoom-in" aria-label="Zoom in" title="Zoom in" disabled><svg aria-hidden="true"><use href="#i-plus"/></svg></button>
+                </div>
+                <span class="tool-label">Zoom</span>
+              </div>
+              <div class="tool">
+                <button class="round-control" id="flip-button" aria-label="Switch camera" title="Enable the camera to switch cameras" disabled><svg aria-hidden="true"><use href="#i-flip"/></svg></button>
+                <span class="tool-label">Flip</span>
+              </div>
+            </div>
+            <button class="button upload-button" id="upload-button"><svg aria-hidden="true"><use href="#i-image"/></svg> Scan an image <svg class="upload-arrow" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+            <p class="scan-caption" id="scan-caption">One scan. A world of possibilities.</p>
+          </div>
+        </div>
+      </section>
+      <section class="library-view" id="library-view" aria-labelledby="library-title" hidden>
+        <div class="library-inner">
+          <div class="library-header">
+            <div>
+              <h1 id="library-title" tabindex="-1">Scan history</h1>
+            </div>
+            <button class="button clear-button" id="clear-history" aria-label="Clear scan history" title="Clear history"><svg aria-hidden="true"><use href="#i-trash"/></svg><span>Clear history</span></button>
+          </div>
+          <div class="search-box">
+            <svg aria-hidden="true"><use href="#i-search"/></svg>
+            <input type="search" id="library-search" placeholder="Search your scans…" aria-label="Search scan history" autocomplete="off" spellcheck="false">
+            <button class="search-clear" id="search-clear" aria-label="Clear search" hidden><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+          </div>
+          <div class="library-toolbar">
+            <div class="filters" role="group" aria-label="Filter scans">
+              <button class="filter" data-filter="all" aria-pressed="true">All scans</button>
+              <button class="filter" data-filter="link" aria-pressed="false">Links</button>
+              <button class="filter" data-filter="data" aria-pressed="false">Text &amp; data</button>
+            </div>
+            <span class="results-count" id="results-count" role="status"></span>
+          </div>
+          <ul class="scan-list" id="scan-list"></ul>
+          <div class="empty-state" id="empty-state">
+            <div class="empty-icon"><svg aria-hidden="true"><use href="#i-history" id="empty-icon-use"/></svg></div>
+            <h2 id="empty-title">A fresh start.</h2>
+            <p id="empty-description">Your scanned links, words, and discoveries will appear right here.</p>
+            <a class="button primary" id="empty-action" href="#scan"><svg aria-hidden="true"><use href="#i-scan"/></svg> Scan your first code</a>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="app-nav">
+      <nav class="nav-dock" aria-label="Main navigation">
+        <a class="nav-link" href="#scan" data-view="scan" aria-current="page"><svg aria-hidden="true"><use href="#i-scan"/></svg><span>Scan</span></a>
+        <a class="nav-link" href="#history" data-view="history"><svg aria-hidden="true"><use href="#i-history"/></svg><span>History</span><span class="nav-count" id="history-count" hidden></span></a>
+        <a class="nav-link" href="#bookmarks" data-view="bookmarks"><svg aria-hidden="true"><use href="#i-bookmark"/></svg><span>Bookmarks</span><span class="nav-count" id="bookmark-count" hidden></span></a>
+      </nav>
+    </footer>
+  </div>
+  <input type="file" id="image-input" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" hidden>
+  <dialog id="result-dialog" aria-labelledby="result-title">
+    <div class="dialog-heading">
+      <div>
+        <p class="eyebrow"><svg aria-hidden="true"><use href="#i-check"/></svg><span id="result-eyebrow">Scan complete</span></p>
+        <h2 id="result-title" tabindex="-1">QR code found</h2>
+      </div>
+      <button class="icon-button" data-close aria-label="Close scan result"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <p class="result-type" id="result-type"></p>
+    <label class="sr-only" for="result-value">Scanned QR code content</label>
+    <textarea class="result-value" id="result-value" readonly spellcheck="false" dir="auto"></textarea>
+    <p class="result-meta" id="result-meta"></p>
+    <a class="button primary result-open" id="result-open" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" hidden>Open website <svg aria-hidden="true"><use href="#i-external"/></svg></a>
+    <div class="result-actions">
+      <button class="button" id="copy-result"><svg aria-hidden="true"><use href="#i-copy"/></svg><span>Copy content</span></button>
+      <button class="button" id="bookmark-result" aria-pressed="false"><svg aria-hidden="true"><use href="#i-bookmark"/></svg><span>Bookmark</span></button>
+    </div>
+    <p class="copy-status" id="copy-status" role="status" hidden></p>
+    <p class="link-note" id="link-note" hidden>Take a look at the address. Only open links you trust.</p>
+    <div class="result-footer"><button class="button quiet" id="result-done"><svg aria-hidden="true"><use href="#i-scan"/></svg><span>Scan next</span></button></div>
+  </dialog>
+  <dialog id="help-dialog" aria-labelledby="help-title">
+    <div class="dialog-heading">
+      <div><p class="eyebrow">Small tool. Simple things.</p><h2 id="help-title">Meet your new lens.</h2></div>
+      <button class="icon-button" data-close aria-label="Close help"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <p class="help-intro">An easy way to get from a QR code to what’s inside.</p>
+    <ol class="help-steps">
+      <li><div><strong>Point and hold steady</strong><p>Enable your camera and fit the code inside the frame. Your result appears as soon as it’s read.</p></div></li>
+      <li><div><strong>Get a clearer view</strong><p>Use + and − to zoom, or flip to another camera. Flash is available on cameras that support it. You can also scan a saved image.</p></div></li>
+      <li><div><strong>Keep the good stuff</strong><p>Scans are added to History. Tap the bookmark on any result to keep it in your collection, even after clearing history.</p></div></li>
+    </ol>
+    <div class="help-privacy">
+      <strong><svg aria-hidden="true"><use href="#i-lock"/></svg> Your discoveries are yours.</strong>
+      <p>Camera frames and images are read on your device and never uploaded. Scans and bookmarks stay in this browser. Clearing your browser’s saved data removes them.</p>
+      <p>For camera access, use HTTPS or localhost. Scanning images also works offline when you open this HTML file directly.</p>
+    </div>
+    <div class="dialog-buttons"><button class="button primary" data-close>Got it</button></div>
+  </dialog>
+  <dialog id="clear-dialog" aria-labelledby="clear-title">
+    <div class="dialog-heading">
+      <h2 id="clear-title">A clean slate?</h2>
+      <button class="icon-button" data-close aria-label="Cancel clearing history"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <p class="confirm-description">This removes your scan history from this browser. Your bookmarks stay saved. This can’t be undone.</p>
+    <div class="dialog-buttons"><button class="button" data-close autofocus>Keep history</button><button class="button danger" id="confirm-clear">Clear history</button></div>
+  </dialog>
+  <div class="toast" id="toast" role="status" hidden></div>
+  <noscript><p class="no-script">Enable JavaScript to scan QR codes and use your saved collection.</p></noscript>
+
+  <!--
+    Offline QR decoder: qr-scanner 1.4.2 by Nimiq / danimoh.
+    Source: https://github.com/nimiq/qr-scanner
+    The worker's code is unchanged; its packaging is changed to an inline,
+    gzip-compressed payload, expanded using the browser's DecompressionStream.
+    No external script, image, font, or network request is needed.
+
+    MIT License
+    Copyright (c) 2017 Nimiq, danimoh
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+
+    The worker includes jsQR (https://github.com/cozmo/jsQR), licensed under
+    Apache License 2.0. The license is included at the end of this document.
+  -->
+  <script type="application/octet-stream" id="qr-worker-data">
+H4sIAAAAAAACE9U9aXfqRrLf+RW2z4sfMg3WBgiE8Mm9SWbuTLaXzJIJhzlPSwsIq4XwtYP576+qW0tLICzdkMx55yag3qurqmtrmXIX9nZ79bx316ttGOzc
+cB3UbeJI+3A627Y+zrxwajkmK0zpbDINLbu1oKtJOL2Pqj07tC37sA3tcOZeuQG1Q/rlchO+8HkCGu6C1dWKfrx6ruPn32er0Hi/sJcb6n0eBDb0u3MkYkuH
+CQ0zY+Sh/fpqD60UlNdXeei8vjpRHYfo4VrpX18nsIycu3RAwx4ftnxa4kabOtXJch+Uvoxdf6CT2XrFBxCPUGnvA0oWNLzyARH+wGl4pt9oSHHtxLLNycBu
+uOYEatmkuOCE+OT6mkqHQ81lKP48j+IEHo5k27TvYIGZX3dvb90Ix9eWZcOcwfrj1ZdBAONu/hmsV5MrZ+f7NLjazn6lN5JABvf1tQDFx9j9rQhLdubY2a1F
+o5xZ+J3vw1ycVs5LSKOybCY1W+Ac4Bjv3Szc4kjYvoJU19QBoz3raD/Zs4XtLGhdyiLjvb1arcMrnODqpmG3wvWPYTBbTepS4+YK1t8Ccp7s4MqBJWFmeZAF
+TNo7ltHM1rH+rmUPnAe775hO03JNx6qnAI9yuxnfqu32cGg03cHAkYZDx7RxTHbWBtQYlmVla29v6zlMySQ3O7DUgUFucz40jQFwiuRYzmBgvL4B1fFkBGAz
+TJgNlnZh70BlnMl+fXuDsD0XtueSWn5rwFsRSzkHgVQxnxl3wuQRXzdza0g5KhwOSIZ35L317vW1/s7aHyTzfevb3ZIGM9e6WfGHG6j7fLGZ2qu4wRZK2PoO
+VrBucB0s/dVe/TKzbub4heUv33+wbqjLnn9k7LsL4MBsNnTlWTfbpMZmNTeMNb4gX1pfAExfMJi+HH3Z+hsNlrOVDaxvyWPrJi3esOYYaAXavo0hw4YM5Cq0
+fp4BHrsw8HVoesd2gFV8DwbU/ZVvAytxI12ogm9ecbQbDVrzlTcmyq+vrBtZUTW93ekavc/fvf/iy6/+9OcPf/nr1998+933//PDj3/7+z/++dO/fr76r8/u
+Gs3Wff+mtd0sZmH9Bs5Wzd+t3BDE5ZVrc9mCM7rWaEwAgTdwcOxWcrpHBlE68N945IwlMxafFI4mHTgmBU7fcykrjDEk021tdttp3ZcOYfCy9xqWR921R//+
+w4f36+VmvaKrsO62lvamTq3h/372X/v6jXzToKksUDqS1NruHKBnvalKh/+VWr+sZyvcgHRw7dCd1kHIRyy8Z1zad0lIn8O+BzIu2aIXbdG2UMQ6UJJMvt3e
+0HIe5L7awW+lr7LNOdaezXFzQ/icgBR3ulvN2dMTDbYwad85mDqcaFHEmdIeGc0T8aBLKL88kCBfCPwmxccubQQOkGR4EsYq0oPT4itzVO7Dlw3tv8O+BOT3
+bLJaAhKBNx0a9IWBXekg9S81maJfcjZVwdkqjG0qcFrpYkuvElRFh5Fjm1o28YFvTca3SD+snVg1KjCwIhNFJYo+HrnAwdrAmkS0mlpCN0VmxFK+hA7TrL76
+sHqyFzPvKjrkV1Da0SvbWT/Rq16vF2mrufWNHU5b/mINY6b3iixLZJmvkz5TZHP6mQWfPt+/bjTmBD6W+DGVTDgqc1EjLsXCVCiYk6aloZZRAS8TaT8Rd9Pl
+m5Fl2G2VzcBeqAjzBGE2JzmAKcI6YbBSEbyJUDjEZFM4eFQET4/AG1i0AnQAnADD0fIHp4VHt2HVPNOJ9Bbr3Wq1fMk8zXYRO8WCIwWbc5so3HEPtplltwzS
+Rz2iKETROKOpjNGWGR5TJJJhk+W93gYu+czS2yTa2lej+RggtYP3IC4/D+vARV+NlrkqicDesWcD2whwgmoyPIOBkEF0R0rnpacnoWPEDcdcBcSJmCnCHuo/
+ybOYlnElkqzCvkl+KY+Xsd+pBXGySCZHPaNl2WwgJ2rZxZmiBfMLaOYhzajlZ7UaigVOKk5JGRwCytyBudhV0XJEm98rPVVCQ27+GTxBY7endYbzh3lD02TD
+6M8bek/vqsTjG5iDmUnmaI7BShZzpv4GEH/BFCLw/HY688PmLzMwe6UWV5N15gowH6DlB+tl3ZNSIvlHRPKKiMRwECONo8uPqcSxlLcubm9Pz5TvR9xdEICg
+/pE+7ujKpf2M2iPhOrQXBW0bO5iFL/2MvXDg9jLTM4JSBccxq3oyrVKiSWOf5k/HDnE0rROZsFlx8+36yl1T35+5M9jLthV7Zf6MLkCTR4ZCPJbJrAH4eWzC
+kTzmpo9nKYyDTC9t88am5DUasYZ3uYcprgW7+pUG60wdV3U413H30w6i2/TABwfWtQdHQ2Ko7djBFRtH4AsCmOg3skWPF3QOHp0EVHAJilYALT3b/gybSbvK
+sdeUWVMeozv7Pq1C37Fo8lHxck2A2va874Ifd04Y2G4Y+aBsRAxKzBy2WYMm+6geOzMCO8eQmjaQJ1MR88AwjqOApB05BLA4AjYbxzZlgRsfMx/xkjhMM+Gq
+2GzhNrXHbGoXxLJlwwdrpSCY6SAemXZwRrTpjf/N+gkBmz/VUyYGuXtY7hbhbLN4ibDEjpSIBd6TsaMZKWy7DJYieEjRtp3UX/Bgbx74Cx4D3RtbwroJeMcs
+4I0JmOsltvb9OtlehgleX2unKS/uuWB7RDj5R/zANxWThNCi89nwmkqKBh/Q4A9cFona8zCUM/LHSfsU2qfAAlNopyO/MR1bf67zB3IKYxNij6ZjKfHkj1BE
+UxS9e/lmvVovZ/YiFYxD+7T5xU/+1YKCTA1BzV/JN8xiY8LtHBpdq1gMFaLIzvOJy/jErsQnTjGf1GxQeWhJ2iFaPjZHfRxdOjoNORElS2/t7NSZyXaE7X1p
+g8fqWcO9828LLCXimM5JCSmgQklQ4QAbnMIEEpKcQkeCDOdwSFzhP2cCifa/E7VJ7cIo5yaYLWfh7AlNXx4lnf1K49DyhK5ogC7tO3tL4+gZfd78DfWzxcmb
+DIpU62I9KWi2Iz2KhHEGSYPpxPornnnkgGwk9p2lkjjMjB1BIttW3f53Fm7pNukQn0RBX/LqVEXG0I2yC9rjcbx/ZHUrZTFyxNDcYEPrINrxekXLDFDwHGco
+KypTm5tCGLDIglbPwm2PG9kK0E2f1UUUjA+zFcYxqKAOavZRhPa/wyvWL2RnX+TsZOl01jwMTWV8cHazhVde5CyjnhVkD5M6RWLFbgC1bSADMOuRYMBrCwA3
+oxBPICC05wAI9JOlHA6EvR4AH3k7RmAcMRbl2/EFhbR3WrF5NXCTR25UuGBUuIlRQSNLMbETMNQGPGWmw4aWd69GQQ3QKCZXJXBy4EyC24PYc4604Gq3WJgu
++Kh+vAAMzQu/FMrYSwJ1GrHPRMqA4Ai7uHaT5UwubedW2reZdiVLmDBheje/fDpGIhP0nvxWzu5rZdlsTpYAqQuLZfs5rRNqkHU+4KQZM4JKucFTxn+n9ypi
+8+DBVMfaoxaxmJfBvC1g0ouZa+QLsl0irlgaC4w0zcRt3zA6gUrsakiKzgq166rRJmq7Q2QeuvIi+cS8dFpozRHfulaEKBs6zA5zmKNwmtcS1SyegvqkYWfV
+BJCHjmhqyk/G1tSUry0LLWpYQGae4LUfIwsUYAIdxnwsdojydHeIAsY1GgEwGPF7hG/H8lC7TgTamUl0yrFGR6wPkpL5Y/tYVTEGlNn+p6CqpmCQc7XjDybM
+YuN+poCCKR5oMN/GAq3BCUDrD+DxYdOTBwSuTw8J2E4GarD8QTGYNT81Rb0IHF+MW/icDFNhIWc0iSTIPFKs+LyE7kvovoTuEwBgCRDOxTM4J3+uK0SocDDC
+NAVnG5APU4p9aXazJF18Dr2RqDniw2L5ObCM0x+4o8OuFURHZ+9bruD4oeQFkDBoxbSJnxVngGswr6A5tojdQw23/cEa7Wcrf41BhD52jUP5UaAZdryIQs/f
+22FIg9V7eIQuGPWnqBPer4OAstP3NX0CvuiP9tTFWNrHdeBtv6fBu8Xanfe7hLrsCTusdsvoWSF4G3vcXekdxgdyciZFrjhVp3gqreJUWvFUFTeI+8O5ziFf
+LUZ+hyhGNQIUo612GkJNL95sp9pmVaNwKlWtOJVaPJXxCYzxFg20czRQ1Yo0aFeDsN0u3mxFEuhnqGmQ2sm51CLEdSuTUz13ot6igX6WBp1qNFArig9DPoe4
+SpvV1MrkLJpKrX449fOSqHaWBO1zJNDkiiSoyLuKfEZ+6NUQp2sXI6fSholKdOtc7rQo5VZUSxyqzjmK1jS9omSriLuOcTH+VbuVmUOvbnUUKRe9mDlyNNAU
+o6fmiNA9r12IZlxGuBWRoWtU1wpFO9aUy50sPcPnZ3FcTZ7qxXqIlJFE+hFVdVXr5KhqnKWqTvSKZkNVGde7nH7WDNQMJfr1Ki9ZSAqjnJDrXY74erkVj490
+r93t5ojfO2+sEL2ivaLJVXVEdX2jFVG1U5L6ZxhOrkiLTrmjf0Ghr5Zb8chS1VWl1877y/JZ8hukLf/uirUML3c+5fTUCk0q8ts8kCKSdYrPfplNqnJldd65
+gK2XZRJDARLmmEQ5b02Ttn4ZtV/Ey0axqtaqhgnacqnj01YuZlqp5Q6sqlXmN62ciDBKi4i2Iut5m085G9bRVNI2fmfzQC3Fyz2Nu4VVFEnnjCL5jXqkqleQ
+ZcsiwNTqbNm9gNGaZZK21slbEcrZuJOmk456GZ+7EEy5W538RjFdy2gIrbqbb5Qjv/4J5C8KTJZ0zvXSznnbMHpanv76m2Yk6VzIkiyUeqj0amW8onMmZ0Vr
+TM8Srl3UTalscSpKOZOzfTmTs3hJtdySRwqlo3UNPc8r7bd4xSDdqiE6tcD7LwLVKHfEjepH/AwLlOIUtbKt0y4OupISikBt/26M0i3PKAa+aZ1jlM4bjNKW
+Sa2rX8b6KEJizyjFKL3exRSznrXdi8SdXl2IKe3fzUGpLKyzm1S00h5KV+7qPVLLsUr3TReFdKvaqVXv5+RuOSl57nqgaE25mAtKObPdi11D5tyZQp4658/8
+tvgqELtW1ljtdjQQVjlmMd5ilg4x1MsYK4VMkLP4igWqUtnH6JFSgQ/9EwIfRbzSLcksl+SVWjlm6ZV2bLo9pX1krPTe4hWDGJ3LCJZiw7Yc4RRFr8wrWjET
+kDIKX/+EK/9usXdDysVTij29ikcif4/SKX2RYuhaT86/ACO/6QWTnvw7M8sltFBVZlHKKfNPsG2Vc8ZtrYwR3K4uzdoljRa5tNFidDtG3mdWlTdj7wRs4p5+
+GYbRz3jD5aRL93JHXVcvq2NqZWJnWnXu65XzwTvnfPAMI/RUrZO3R1T1bT+nq5PehezX4oCQUs55Uy5IvDNeTBFRuiUlQqEw/wSHVyt/zdbrHN+wq1oJ90Qn
+inwhq1M/Y02WUg6f8NqiXux6ZIRmYT+j+vFUyrKCXp0VChcteeem6KW1A9BdPgqTqfpb6kEnhgw8c6GwaueM3C+nH4yLXV/qJVF5XnrUqjPNbxQfhVEQuZwe
+UUvrEWAZwzhSJO03r+oI8JmiXOgFyMKLRbmkSSFXD0sYJcWMVnj9b1xU44jUUy/HMap68cAZkL0t5y/u1E4Z/xZY5kJWaLHNXPatJuUTDPpeITOUY9RPCJ+p
+RrmQyAWtVU27wEtKeZbpakeKqVvGywWWMS6jmIwzRkq5G8xzbwYYFc/fb4/OV92nmo1RqJ3q79gX2jJl3xU3KkiZbtc4sn+Nkh4OUVT1974l7uZsQ/mCBo1W
+jmvUC7KNXk45acoFTWClHNtoSgW26XWU/NuJaq/MrQ66TcA31c3gWrX3ZXJStPspcZIiaaOU45sLetFKOWmjdS8obXolpU2nPNuoHU3Ns412NgxbQ3Gjcr4B
+W7jqHwNVvugpHTQ891aKURGjeWtYvqDTXfJ1A7V9QWu45DVy4Zox59RE1um2O/lXXTWlzNUgcA5wT9W/OSpEqFaSdbQLco5a7j5Z7VW3iAsVlVrS8f6D+Kb2
+iQaOprWNXp5v1LdsYpm7UcA72oXsYqV7SRep5AsGxZZLdYYoXDNvulxQkhS7gvnD1q7AEZ2enveSNK2sY00UXf0DOIL81jcjizhHL8k5yuU4p1AsqSUv/znn
+1H4Xq1evYL7oit470kF6Wf8aOKfzB+ugzn+Ccy4oc/TCPwv67W9LFpqGJW8RlfJxGb19/FqT1q7iLRGlfSHLtziIoJa8UPyUH8lQy1m+hb4Et3yrSQCtrNjR
+//hAsF7B127L6tHbCFrnjb8CxhBNJ+Ie4KK2/jtfO+WYp/g67RO4p1MYD85yj3bBy0q9U5J55AsyTzne6VS4qmyrHTX/orbWLXtVCdYv8E/7d7eAf9fQcK/k
+u7j6BdVW7z/APPrl7Z22oclH9o5R9tYSuAdTmFzsJYlaOe5RjPPsU01xaeW4R1MvyD3GH6+39JKyRyv/t8lKR5GPPe+3fsAAZY8acQ/mwAGLuXaRHzSQ/wMv
+TOhyObOne0G9pf3xt9/FQdKc4upWYJ6ujH84kPupLrmKl06U7qVs5t4Zpijnb1X/gyOl5LsThdc2n8A9WtnrqUuazHLJqF/nDZt5bCa/1PqXKPvUvzELYfTj
+1pgJDpO63Vp2U0l/qDsZ89fMrz87g4HyavOfsZzZ1miPGfL6KhhUKoEZl3b4AXi1vz/FXpFr+I29nfflA6CDj5W7Xa3SWCUdqyuGUWmsmo7VtK5SaayWjFW6
+PaUazHo6ttPuyZXGtgVcad12pbGddN0e3hRVGdtNxmpyp1MCZpnbInkC93S1W2bwCQJrKgirSmNVAWijW23dlMBqR2n3Ko1NCay2tY5RaaxA4G63DGPJpwis
+dnq9auumBG53OyW2q506v20ZbJNalbEpebtar9qyKXWBIY1KQ4XTa5Q5gNop2rZ73UojU8pqml5tUYGwilxt1ZSu4Gp0SvCTeoqw4Bf01DJjaycoC1ZumcOn
+niKtohttvdLYlLY9rdepNDSlrdHu9ioNTYkLdkyvGsSCXFZUvV1pLJB3TH4B5WtbQ/yV77rdemnYrWfpM5VEVVAjFp4/08hR57RKSCcGrfeq1MjUPN9rUmbu
+5zucv6Y24sfM7He4HrbxJ00YWhdAzXQYC2lA53ac88O1frFHbive+DjJc8NzNps8T5HSbeh3TitjEps8v81zS0wlTfEn2/1Wmp9ZJjLpwb9rOVtPmwa0GCda
+wFZrYr3BW+Ifn79a+1dOq8AGl+Ju0/PdOjxlHn5NX1+j0hS+aLP7+jrhD0m7CNWkqZIp/N+Gf3mIOwCtAlCD15Bv6pEOb1BYU2eQQyL+BH4GK4oCaNFgFHQn
+ebRAI/ga2IQ/Jz8am1MLfw2eWtdy8nvvc8sDG1MezM1501KlPe6lNr+9nTebud+E99hvwrOUAguLPsCw5rK/TDqtoJM6XJmruNOjNW+uTPZb/fjT+fVHspCk
+/bTRYJwQsJ9+57WmW9+/9Bfkuf94wF/ED6zrQDIn1gQt24BlWMYf/3d4xrmJRCbW1JKlw+EAW6FpluKUYReYxnXPc0THvElcMUlf3QE0S/c80WRnaLnx78R/
+GLlNZWy60S/58/QHbcCQ5Zlesyml2bicZs+kQ/hSFJNCi2uBYc42RYknwWkxvWgSyiegrFuaYRwnmEQTTKDFEyaAXXqYkAHkz2w1C1/48Umwzfj7A8tOMmnF
+vigmkgO2FMtJjoMJcMBf6i5JW4EnWMJo35qAMHAk1sE70wFzEGjDNI2RLyB8aYtpk2IcIRINwK3pAlN0rgE8JGOyS5cYEjgy/NS6VhdxBH0BE8d9DZYgUorz
+USQCR6QTZbwMJPGa3RxFwHNlFImypTWNNJOagHSD9RGQ7lksbUCMda4efFE1TA5AiBnPE+NjfgeQAyyhX4J3Cmh1iC9hhjbMb8CwCWLPifZIGV18iWTbk5xd
+iPIHj/10sYDwVSKSuQR2WifDByN3TCgmbsbMFF4rdmuThFNTa7hPRYFszgfTVuLHmnNMMxbleYTaL0Sftj9tnfRxiZv0GI0PmMzCKujZQHiOag/sRMbJSQb+
+UVKU7WLmUpBvmHnUSrc0ksenl4m4SzbdgcMYMaMjqDRpJRDzrcISmHETU9qwhI4C2qKMKTyvRnbtBGskA5UitohQ0NGk4Y7PrM1SRsppVr9EcEw53NMzY2sR
+0mgaNPg6PaBMOjLJnE0mwo/sMml1c7hPzIA4KUxUPsl6fAovl03IawXU2wH94LT5kjWkDb+V5yzMOlOUtIYdz1R7UUSFJ+09a2rXaYoQIjzHyUHo0UKnQMxm
+4jsew1LzuSO70Rhb3sgfs/Tl0QSeDQc5p7GFXORiJiDhJH+T5nyKUla3nptO67nhwrfXejbj9OkvUPsCtS9Q+xJnvKI8o2h8TPa2ovRhcBMmIbaiwvMLPL/A
+swZ+pq0qfZdPD89q3+WTwjNr1ZQ+G6epfTZG08B/MCNlBcNgqBln8uElLjdwEZiKLKGePWHeqLtlc3o3B5ujTtmjL91jtqn65M5v0rs5lo5hbkzvnCzkrIbD
+P2Xwe1FPeudFu/CinljD90IL9iKgfS3k2rKtlAgiUHYLpgeLGAY38VljzyoDD56UqIxtStSPAZqUVTaO98O/xlb5nHycwuZU4nEqn1NJ14vmV9iW0nnYON4P
+//5X43MqKSwRzEq0+Rg2YRzuQdPS9VRhD2oGTZsokxSXDYC0/XNfa7XJC36Cw/QMdPJmYDsjyzeLWzqsJVfDemlHLTgeU6F+AyZfuN58TX1MBg1PPzA77the
+x1TR6zBcL7ErZqjy2MZc/AQtg8jBZxWfNf4MLjjrpQq9VKGXGvWasF6a0EsTemlRr2m6oiqsqAorAqnm6YqqsKIqrAi9lumKqrCiKqwIvRbpipqwoiasCEy1
+SlfUhBU1YUXo9RitWEu7aUI3/qzBmc46bwLJiPCMZm89IDuQ7jxr5NUGhEHQWN7tGo/x6Xrug1QI4GzvGgvpfgMMUPehPIfyCsqHQyKIAxDEwUCY3wwiHY6t
+O2jdZVp3sf+xsbz6rgHMFcBHnORsRwLCrT3BF9iA90sy5Rcpsb/2YOkFs+e+S5b2ZjNbTb6KjkbfOxxwnW8tdkKsIZth+xhEc2/WH+uxJI79d17HJbKKOj4+
+Zt8JGQLtREeirrWGTsOVhBP5mLP8vuVZPik8YC3w9bc8UduETMmcmcO3t/DpP4xYzdjCvMTEHff9IaoP+PTSJjb1uC+UMdOgKQ/rc9jLFDB1Bx7HCzy9SE2o
+409Yx1sxQ+GEjZyTSZJmdJ8ez/6ERGca5Hl8pvtzUeYEgmgGXvqu/j1uiHikLUn33QYvO5myCzsSy05aBieP2XFDryixpLdb0CtM1XaDJiUjVLDerbw6R+09
+c8Ry1a5YHbuUDVvCUE3X3H6codK3P9OlvWtv6ZXcB4vBdOD0zE1WAYK52YxZLOHevk04OD8CNMhgKVL+J8UJz/o4gkOUDQpJcIyygSPpMDZ5SkhWbzvbmP2k
+oVDDmJRZQ36cJDI3T6T2c+tl9+9gPydb8xwlk5/kh5Jpfgli54cS52h6bm8koNvNCaaITLfSnEogGoVRzTlQBOTgZGA/KP2mAsJuOnD4YyAGQnbgd22sqbnD
+rHQNlCPWStpP4Nhs+juwYvyHXX/D8zyi+IDzIUHPIApXkNhNegb+fulPQX/FOQzRC28oksSJv2hYS2a7DRbMZ9ywrKW8bdOwHs1F04LD4Fq1EU/1yw1Rj9md
+mCoQzvLIbyjjB5ev+C1LIEh4pST1o2o5yUfqpj7A93keimWRb0VMAPSLGY0h0aWzRd27R1llsxbYINqnPmwSLVJ6ONET82JHrkgjcUrSm0zMlL0CqxiM+fip
+1Wo5UgrnD2L2ShSN999hekkMpziJ6xp5EHuvYSWy1QZUgHHpgnA9pJYcGOT2hB8pl9+yZ4/Wj0lGY7DluVD9nm8VmITtE3fpJEnaadyMov0FOmWb/biZgbW0
+n8FZtRl6QWQq8RmN61/Y2cvPMcnOMVsB232ceeEUZ8I4rdRIZ2KtUZArjuY2chNOrR/qmP8SjJAfAHMOHpsf6j4+LOBhgg8rqw7HKMVWY54pLTOlhVhCGRtR
+N9WCU+4X3kXfMBsvR98wHy9H3zAjL0ffUiPVoxmwmquMPp2faVset9WSxsVRo3S/itw1L9HGcSxIyJP9N86eaZRL0A0OE4tReCtTDzaFKblRWJU70KfHeSfG
+eaA9XAvTxYOGYTPkRr/Eo4Val8UQJS9a0yk1wpHY2wepoeaiceY1QA+q4qHZCiHW0Zi4GF/mZ2c0jq4BRmmy8g0c3c0gDdtt4qSwIN6A2a8VNja0RngBwP6l
+Y58skB1POJidAPMpTSjLN/BENkx5TVmuVhCUPC8rzBaOlDEJRyp+aPihj4kPM1uKOQFZj5PMQcCEYCaYgloJR/K4OZcG89tboU45UaeOmxr4sgP4yNRrJ/rq
+cd01X3mJK0fhrKYGzKeZUys791IaLPPzHtXpcR3LND/ncvNX66nJurM9v1i/NnFC2OR+G9pB+FP/hdCV91P/V6Du5mAuLbflzxbgTNU/WsOXofUx8qhavPvt
+be1lkFbi0NfXX090O+4l1sS9xJHY6/ZWabWHCOF9PdPQzA0F+7LVHpTpKJnyYBmJv4clRuh4uzWPVeQerM/+nPBqsEBZgHsqoi/BnIZ3JynmAGUR9g6AUfoG
+5v4fIm4eI642FzA37VMBc9MYc2DsHA6H6HYGNHnCSU/W8Cme/AWMpc3trTqw0qrmEzr1TMC51ulRcKLhbHvJ3LRwbswbbdHiSU4BuLGGANAmBWiTACQsidBF
+ogyP7YLdGUrqcJGOW/Bxr68gZOu8wLHZ4AVEdGORRXRaxlbQoGBXRGNf0rYXMB3vVXIkqR1J1BJUkthFzShdrimCQTJrNXOQkOOdNGoK3hl8Bw7BvR8xA8jp
+H+uxSZJA8dLPwHEgI4UoRIP/YQaWo5yzzNZdBxSM4+e+A2MoQX+r7x8kHmXXhnES52zAuLVdgyVR35AQTD3YDU7SDPk3eAMxXfDSyRkI1lAEMfj9DdBce2q5
+IwflvkDHFdLRlVbXLIjqczC/c36hbtiyt9vZZJUr7Q9kJZFoIysOQ2pqrFiy7yZlX2BL3POng8RueM/uIsLQZj1bhdv+COxaOHTwoYzHhK9Go9WwIXlUokc4
+fos3VsC7q8TXfkwc8IAIfvnuYD3ayPALXIQDI5m1hfX3OvrSjwRjOuaK6fnb21UEdD4U1wcGWRwF6JidfKIaDGsBAhi6Yz132JA6xQsh0BSDDn0D1jfAvsne
+oPqRVT9C9QE5BI21R/RL8SHAs4wPsJO6He1swYx/6fye7NN7skvsyWU93QjOuNZhtU4e+kWEqgwC7BQBiVtzhWH/VSynWZb4lWCe/T129QjlGs0nExP9m7oQ
+bfDFaMPkYAU2GJ/gIsG5je8tFtl7C252RTcTDQrAzq3oRgJKGPcHhxTXbOAXYPVevccrUKWp3bsmf5kAdskG39WnOAuKEDb8rj7HeaQDEMsB/2hTXyQhxNWn
+i1XggSKxym8ac9HAVSYWuAABxYzNR0H4JR0z8ZZFLPyY4AMEQPcVEvNAllJqT7Oq6Fw/guKUYm0Eu72+XkjRUV6AsLFAx/CjvIqPcuzT5llUaQ+smnt7G3t8
+Dw6c4v5SYCJftN7/kRrv24LbwMwdG8hQx2J3AVSK7gmRRBgZxaE4AC+9XX5fzsxv7uJ8jVd20MODNo83cO9FNr1B5NOanhDR9TFaYvqD2KPlF26RY+RjzIUX
+fPBtQOfxsC60kOu0E2qdLe8TV2N3ZmcgQAe09OLbzb0zW9nBC97ywSF1XkK6ZS92QSGkzyFxp7vVfAsl/hD/mQhURE9ksYazglWJjH2/DlY06DMuFmPGdSqI
+MlmK5UFhdxk7cZYtP6/wLAmi6MwitcyQeBNfzVYeDWIGo+kFTAT1iXZ+VZMsme+Rtoib+jzPy/RIqMIJ4lH4mOkOB1EqMd/RtvazVUSSz2HUcgPK9MbmT+/W
+4fSGTAL68qNrL+g/GWtt+yDbvH5LxT9bhja66re6SlslzmJH+y25q6pkt6UfViGd0ODzzSZYP8+WnNTXGF+xV9/Bgh+DWUg/LO0J7V/LhzSm/08eJoiMiDl9
+2YK9lISvXJBt9sgdWw58HMQA/0+x6Lb2hzhQF03Cr1/YcZPMf9YpCW3+7eGty816tXj5gDgIb/BquHWEj9fXG1YHlAm2RZ2iiHEGdUXTeSYPF9NWHrdkCpVH
+GAJ14dy54hsecKB18KAzoflv7AW+YkO9KzyIVxswwOA5XF+xowrKKmjdSJEPLZvca2OmecFbA3bL2fk+DciSzCVz2bDmB971c7wyIfxdhUmrgNbJCyP4ittq
+4LJX3OK6R6h7HDjmYxyUCGA79dWd03hEy27LXnFbkQne6dzZo2DcmLQYq2GhoYwbtUkL2Y0V1XFDUY3h0Iii5rhIflFxQWEtUmatzFL4hl0auXXuDTTu0goX
+Kx6tyd1KQPDubQQ/MgQ/HnYRgicA0Y6/zcJBXzHQscyv9ibsQo9Nv0nevCKh8F7XE3uN7IkFfmI18ZHVfTQ/xtd9tm0t+Kted0HjIzHuHhtPkrmxEqdgQ2w4
+LKGVRF9DrDg8WfVNI0Rj4Cntq7bbRGkpyh1MoepDK2yC7wpO5QZcMXnweHsrDzDyH1r1HVszII9NRWqod1ER7xmkhlCAVvTwNoOQzROiLqrtGMlgLHmSDtMH
+wE8J9iXIvoR3fQZ6O5LUf8zfzOI7OkH07hosCHPbpeYOomltNm1wYlpJ8LdWphNRBN/JsYGSNlLDtSZNvC1Wh/aD2reH7oPbt82ptWpigEsdOlDrDKcP075j
+ziMyL62maqpDa8leMsWaTVSzYbHCecPi2HQbSzJtbFCTz+/VNhs8ZbwwNafR0Dkrz9nra0vLuLMbU7KBb6cxB77iXLIkG4k8MgLAIwkHFl6d3t4GSdV1nVVK
+B9/yH/ax5PHAfeIiFB6DQ19s4K/KCDW/pl1fDpZvgof+j7r3UHvp/ypJIItFCXt9UsLe3mYE9nWBGI4m/rWPoYvk9cyfWh717d0itH5ikP3LuvHWqzDSEORn
+i6m/bjfSfUpb5ppP7RWrPVBwtS1d+K016OftFkS6ZYMm4y+W2ewNvNYMLP/4GT+S61BeFb5saHQteuNRfE/rpg8c9FOdv1dO4puO5E7jhF7/17Eu/xlc7QcG
+2ma9Db/hwNX3M6/vEFyyf/MY/EC3gI4bbt/Z0XLMLvo+cr5BLUXWXCtjnJFsg2CNiS1HptpxYzolaP1+FXiZqSOJl8g3EzjCWwEJN/2fUfiDiQyf5s9c+qPB
+jN9QRvJCEb+gVEBk6FDQYtbExROqfMNIGBHZjUm7DmYTOAmLm36W78yjOULWRTBeMl0cPB3YQTwtUY+Iv/snL/YT+PCKH+/2D+K07mK9RaiRAOy5Dm5B7f8A
+RMlydjirAAA=
+  </script>
+  <script>
+    async function createQRWorker() {
+      if (!globalThis.DecompressionStream || !globalThis.Worker) {
+        throw new Error('Update your browser to a recent version of Safari, Chrome, Firefox, or Edge to scan QR codes.');
+      }
+      const bytes = Uint8Array.from(atob(document.getElementById('qr-worker-data').textContent.replace(/\s/g, '')), character => character.charCodeAt(0));
+      const source = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+      // Keep the Blob URL alive until Safari has actually loaded the worker.
+      const url = URL.createObjectURL(new Blob([source, '\nself.postMessage({type:"ready"});'], { type: 'application/javascript' }));
+      let worker;
+      try { worker = new Worker(url); }
+      catch (error) { URL.revokeObjectURL(url); throw error; }
+      return new Promise((resolve, reject) => {
+        const fail = () => {
+          clearTimeout(timer);
+          worker.terminate();
+          URL.revokeObjectURL(url);
+          reject(new Error('The QR reader couldn’t start. Reload this page and try again.'));
+        };
+        const timer = setTimeout(fail, 10000);
+        worker.onerror = fail;
+        worker.onmessage = event => {
+          if (event.data.type !== 'ready') return;
+          clearTimeout(timer);
+          URL.revokeObjectURL(url);
+          worker.onmessage = null;
+          worker.onerror = null;
+          resolve(worker);
+        };
+      });
+    }
+  </script>
+
+  <script>
+  // Lens — QR scanner app.
+  //
+  // Architecture overview:
+  //   • All scans/bookmarks persist to localStorage under STORAGE_KEY.
+  //   • The camera stream is decoded by a Web Worker running jsQR
+  //     (createQRWorker, defined in the previous <script> block).
+  //   • "Epoch" counters (cameraEpoch, imageEpoch, displayEpoch,
+  //     readerEpoch) invalidate stale async work — e.g. when the user
+  //     navigates away or a newer scan starts while an old one is in flight.
+  //   • cameraMode drives the gate overlay: idle → starting → live,
+  //     with paused/error/reading as fallback states.
+  (() => {
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const app = $('app');
+    const video = $('camera');
+    const STORAGE_KEY = 'lens.qr.v1';
+    const MAX_VALUE_LENGTH = 32768;
+    const emptyStore = () => ({ version: 1, scans: [], bookmarks: [] });
+    const newId = () => globalThis.crypto?.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2);
+    let store = emptyStore();
+    let sessionOnly = false;
+    let writeQueue = Promise.resolve();
+    let view = 'scan';               // 'scan' | 'history' | 'bookmarks' (from location.hash)
+    let cameraMode = 'idle';         // idle | starting | live | paused | error | reading
+    // Epochs: bumping one cancels all in-flight async work tied to it.
+    let stream = null;               // active camera MediaStream
+    let videoTrack = null;           // its video track (for torch/ended events)
+    let cameraEpoch = 0;
+    let imageEpoch = 0;
+    let displayEpoch = 0;
+    let frameTimer = 0;              // setTimeout handle for the scan loop
+    let selectedCamera = '';         // deviceId of the active camera
+    let cameras = [];                // enumerated video inputs (for flip)
+    let torch = false;               // flash state
+    let torchSupported = false;
+    let torchBusy = false;
+    let zoom = 1;                    // digital zoom applied to the <video>
+    let lastCameraValue = null;      // last decoded QR text (dedupe)
+    let clearFrames = 0;             // consecutive empty frames (reset hint text)
+    let currentRecord = null;        // scan shown in the result dialog
+    let toastTimer = 0;
+    // QR decoder worker state (see getReader/decode below)
+    let reader = null;
+    let readerPromise = null;
+    let readerEpoch = 0;
+    let readerSequence = 0;
+    const readerJobs = new Map();    // in-flight decode requests by id
+    const modalState = new WeakMap(); // per-dialog state (focus restore, camera resume)
+    const filters = { history: { query: '', type: 'all' }, bookmarks: { query: '', type: 'all' } };
+    const captureCanvas = document.createElement('canvas');
+    const captureContext = captureCanvas.getContext('2d', { willReadFrequently: true });
+    const dateFormat = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    const timeFormat = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
+
+    function icon(name) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+      svg.setAttribute('aria-hidden', 'true');
+      use.setAttribute('href', '#i-' + name);
+      svg.append(use);
+      return svg;
+    }
+
+    function element(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function notify(message) {
+      clearTimeout(toastTimer);
+      $('toast').textContent = message;
+      $('toast').hidden = false;
+      toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4000);
+    }
+
+    function useSessionStorage(message) {
+      sessionOnly = true;
+      $('storage-notice').textContent = message;
+      $('storage-notice').hidden = false;
+    }
+
+    // Validate and normalise raw localStorage JSON; throws on corrupt data
+    // so callers can fall back to session-only storage.
+    function parseStore(raw) {
+      if (raw === null) return emptyStore();
+      const parsed = JSON.parse(raw);
+      if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.scans) || !Array.isArray(parsed.bookmarks)) throw new Error('Invalid saved collection');
+      const ids = new Set();
+      const valid = (record, dateKey) => {
+        if (!record || typeof record.id !== 'string' || !record.id || ids.has(record.id)
+          || typeof record.value !== 'string' || record.value.length > MAX_VALUE_LENGTH
+          || !Number.isFinite(record[dateKey]) || !Number.isFinite(new Date(record[dateKey]).getTime())) return false;
+        ids.add(record.id);
+        return true;
+      };
+      if (!parsed.scans.every(record => valid(record, 'scannedAt') && ['camera', 'image'].includes(record.source))) throw new Error('Invalid saved scans');
+      ids.clear();
+      const values = new Set();
+      if (!parsed.bookmarks.every(record => {
+        if (!valid(record, 'savedAt') || values.has(record.value)) return false;
+        values.add(record.value);
+        return true;
+      })) throw new Error('Invalid saved bookmarks');
+      return parsed;
+    }
+
+    function loadStore() {
+      try {
+        store = parseStore(localStorage.getItem(STORAGE_KEY));
+      } catch {
+        useSessionStorage('Saved data is unavailable and has been left untouched. New scans and bookmarks will stay in this tab.');
+      }
+    }
+
+    // Serialised read-modify-write so concurrent updates can't clobber each other.
+    function updateStore(change) {
+      const run = async () => {
+        let ran = false;
+        const apply = () => {
+          ran = true;
+          if (!sessionOnly) {
+            try { store = parseStore(localStorage.getItem(STORAGE_KEY)); }
+            catch { useSessionStorage('Saved data is unavailable and has been left untouched. New changes will stay in this tab.'); }
+          }
+          const next = { version: 1, scans: store.scans.slice(), bookmarks: store.bookmarks.slice() };
+          const result = change(next);
+          if (!sessionOnly) {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
+            catch { useSessionStorage('Browser storage is full or unavailable. New scans and bookmark changes will stay in this tab.'); }
+          }
+          store = next;
+          refreshCollection();
+          return result;
+        };
+        if (navigator.locks?.request) {
+          try { return await navigator.locks.request(STORAGE_KEY, apply); }
+          catch (error) { if (ran) throw error; }
+        }
+        return apply();
+      };
+      writeQueue = writeQueue.then(run, run);
+      return writeQueue;
+    }
+
+    function describe(value) {
+      const clean = value.trim();
+      let url = null;
+      if (/^https?:\/\//i.test(clean) && !/[\u0000-\u0020\u007f]/.test(clean)) {
+        try {
+          const parsed = new URL(clean);
+          if (['http:', 'https:'].includes(parsed.protocol) && parsed.hostname) url = parsed;
+        } catch {}
+      }
+      if (url) return { kind: 'link', label: 'Website', title: url.hostname, preview: value, url: url.href, icon: 'link' };
+      let label = 'Text';
+      if (/^WIFI:/i.test(clean)) label = 'Wi-Fi details';
+      else if (/^BEGIN:VCARD/i.test(clean)) label = 'Contact details';
+      else if (/^BEGIN:VEVENT/i.test(clean)) label = 'Calendar event';
+      else if (/^mailto:/i.test(clean)) label = 'Email address';
+      else if (/^tel:/i.test(clean)) label = 'Phone number';
+      else if (/^geo:/i.test(clean)) label = 'Location';
+      const firstLine = clean.split(/\r?\n/).find(line => line.trim()) || 'Empty QR code';
+      return { kind: 'data', label, title: label === 'Text' ? firstLine : label, preview: value, url: null, icon: 'text' };
+    }
+
+    function isBookmarked(value) { return store.bookmarks.some(record => record.value === value); }
+
+    async function toggleBookmark(value) {
+      const saved = await updateStore(next => {
+        const index = next.bookmarks.findIndex(record => record.value === value);
+        if (index >= 0) { next.bookmarks.splice(index, 1); return false; }
+        next.bookmarks.unshift({ id: newId(), value, savedAt: Date.now() });
+        return true;
+      });
+      notify(saved ? (sessionOnly ? 'Bookmarked for this tab.' : 'Saved to your bookmarks.') : 'Bookmark removed.');
+    }
+
+    function dayLabel(timestamp) {
+      const date = new Date(timestamp);
+      const today = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      if (date.toDateString() === today.toDateString()) return 'Today';
+      if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+      return dateFormat.format(date);
+    }
+
+    function refreshCollection() {
+      for (const [id, count] of [['history-count', store.scans.length], ['bookmark-count', store.bookmarks.length]]) {
+        $(id).hidden = count === 0;
+        $(id).textContent = count > 99 ? '99+' : String(count);
+      }
+      if (view !== 'scan') renderLibrary();
+      if (currentRecord) updateResultBookmark();
+    }
+
+    function renderLibrary() {
+      const bookmarks = view === 'bookmarks';
+      const filter = filters[view];
+      const records = bookmarks ? store.bookmarks : store.scans;
+      const query = filter.query.trim().toLocaleLowerCase();
+      const shown = records.filter(record => {
+        const details = describe(record.value);
+        return (filter.type === 'all' || filter.type === details.kind)
+          && (!query || (record.value + ' ' + details.label).toLocaleLowerCase().includes(query));
+      }).sort((a, b) => (b.savedAt ?? b.scannedAt) - (a.savedAt ?? a.scannedAt));
+      $('library-title').textContent = bookmarks ? 'Your bookmarks' : 'Scan history';
+      $('library-search').placeholder = bookmarks ? 'Search your bookmarks…' : 'Search your scans…';
+      $('library-search').setAttribute('aria-label', bookmarks ? 'Search bookmarks' : 'Search scan history');
+      if ($('library-search').value !== filter.query) $('library-search').value = filter.query;
+      $('search-clear').hidden = !filter.query;
+      $('clear-history').hidden = bookmarks || store.scans.length === 0;
+      document.querySelectorAll('[data-filter]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.filter === filter.type)));
+      document.querySelector('[data-filter="all"]').textContent = bookmarks ? 'All saved' : 'All scans';
+      $('results-count').textContent = shown.length + (shown.length === 1 ? ' item' : ' items');
+      const fragment = document.createDocumentFragment();
+      let previousDay = '';
+      for (const record of shown) {
+        const time = bookmarks ? record.savedAt : record.scannedAt;
+        const day = dayLabel(time);
+        if (day !== previousDay) {
+          const divider = element('li', 'date-divider', day);
+          divider.setAttribute('role', 'presentation');
+          fragment.append(divider);
+          previousDay = day;
+        }
+        const details = describe(record.value);
+        const row = element('li', 'scan-row');
+        const open = element('button', 'row-open');
+        open.dataset.recordId = record.id;
+        const mark = element('span', 'row-icon' + (details.kind === 'data' ? ' data' : ''));
+        mark.append(icon(details.icon));
+        const content = element('span', 'row-content');
+        const title = element('span', 'row-title', details.title);
+        title.dir = 'auto';
+        const preview = element('span', 'row-preview', record.value || 'This code contains no text.');
+        preview.dir = 'auto';
+        const meta = element('span', 'row-meta', details.label + ' · ' + timeFormat.format(time) + (!bookmarks && record.source === 'image' ? ' · From image' : ''));
+        meta.title = new Date(time).toLocaleString();
+        content.append(title, preview, meta);
+        open.append(mark, content);
+        open.addEventListener('click', event => showResult(record, false, false, event.currentTarget));
+        const save = element('button', 'row-save');
+        const saved = isBookmarked(record.value);
+        save.dataset.recordId = record.id;
+        save.dataset.action = 'bookmark';
+        save.setAttribute('aria-pressed', String(saved));
+        save.setAttribute('aria-label', (saved ? 'Remove bookmark: ' : 'Bookmark: ') + details.title.slice(0, 100));
+        save.title = saved ? 'Remove bookmark' : 'Save bookmark';
+        save.append(icon('bookmark'));
+        save.addEventListener('click', async () => {
+          const hadFocus = document.activeElement === save;
+          save.disabled = true;
+          await toggleBookmark(record.value);
+          if (hadFocus) {
+            const replacement = [...$('scan-list').querySelectorAll('.row-save')].find(button => button.dataset.recordId === record.id);
+            (replacement || $('library-title')).focus({ preventScroll: true });
+          }
+        });
+        row.append(open, save);
+        fragment.append(row);
+      }
+      $('scan-list').replaceChildren(fragment);
+      $('empty-state').hidden = shown.length > 0;
+      const filtered = records.length > 0;
+      $('empty-icon-use').setAttribute('href', filtered ? '#i-search' : bookmarks ? '#i-bookmark' : '#i-history');
+      $('empty-title').textContent = filtered ? 'Nothing here just yet.' : bookmarks ? 'Keep a little collection.' : 'A fresh start.';
+      $('empty-description').textContent = filtered ? 'Try another search or choose a different filter.' : bookmarks ? 'Tap the bookmark on any scan to save a link, a note, or something worth keeping.' : 'Your scanned links, words, and discoveries will appear right here.';
+      $('empty-action').hidden = filtered;
+      $('empty-action').lastChild.textContent = bookmarks ? ' Find something to save' : ' Scan your first code';
+    }
+
+    // Show/hide the camera gate overlay and sync its title, description
+    // and button label with the current cameraMode.
+    function setCameraMode(mode, title, description) {
+      cameraMode = mode;
+      app.dataset.camera = mode;
+      const live = mode === 'live';
+      $('camera-gate').hidden = live;
+      $('pause-camera').hidden = !live;
+      $('camera-gate').classList.toggle('busy', mode === 'starting' || mode === 'reading');
+      const states = {
+        idle: ['Ready when you are', 'A little focus. That’s it.', 'Enable your camera and point it at a QR code. We’ll take it from there.', 'Enable camera'],
+        starting: ['Opening your camera', 'Let’s take a look.', 'Allow camera access when your browser asks. Your feed stays on this device.', 'Cancel'],
+        live: ['Scanning for a code', '', '', 'Enable camera'],
+        paused: ['Camera paused', 'Take your time.', 'Your camera is off. Resume whenever you’re ready for the next code.', 'Resume camera'],
+        error: ['Camera is off', 'Camera unavailable', 'Try again, or scan a saved image instead.', 'Try camera again'],
+        reading: ['Reading your image', 'Finding the good stuff.', 'Looking for a QR code in your image. It stays on this device.', 'Cancel']
+      };
+      const state = states[mode] || states.idle;
+      $('camera-status').textContent = state[0];
+      $('gate-title').textContent = title || state[1];
+      $('gate-description').textContent = description || state[2];
+      $('camera-button').querySelector('span').textContent = state[3];
+      $('camera-button').querySelector('use').setAttribute('href', mode === 'starting' || mode === 'reading' ? '#i-close' : '#i-camera');
+      $('scan-caption').textContent = live ? 'Fit the QR code inside the frame.' : 'One scan. A world of possibilities.';
+      updateCameraControls();
+    }
+
+    function updateCameraControls() {
+      const live = cameraMode === 'live';
+      $('flash-button').disabled = !live || !torchSupported || torchBusy;
+      $('flash-button').setAttribute('aria-pressed', String(torch));
+      $('flash-button').setAttribute('aria-label', torch ? 'Turn flash off' : 'Turn flash on');
+      $('flash-button').title = !live ? 'Enable the camera to use flash' : torchSupported ? (torch ? 'Turn flash off' : 'Turn flash on') : 'This camera does not support flash';
+      $('flash-label').textContent = live && !torchSupported ? 'No flash' : torch ? 'Flash on' : 'Flash off';
+      $('flip-button').disabled = !live || cameras.length < 2;
+      $('flip-button').title = !live ? 'Enable the camera to switch cameras' : cameras.length < 2 ? 'Only one camera is available' : 'Switch camera';
+      $('zoom-in').disabled = !live || zoom >= 4;
+      $('zoom-out').disabled = !live || zoom <= 1;
+      $('zoom-value').disabled = !live;
+      $('zoom-value').textContent = zoom + '×';
+      $('zoom-value').setAttribute('aria-label', 'Zoom ' + zoom + ' times. Reset zoom');
+      video.style.transform = 'scale(' + zoom + ')';
+    }
+
+    // Stop the camera and reset related state. 'mode' selects the gate
+    // overlay state shown afterwards (paused by default, 'error' on failure).
+    function stopCamera(mode = 'paused') {
+      ++cameraEpoch;
+      clearTimeout(frameTimer);
+      if (stream) stream.getTracks().forEach(track => track.stop());
+      stream = null;
+      videoTrack = null;
+      video.pause();
+      video.srcObject = null;
+      torch = false;
+      torchSupported = false;
+      torchBusy = false;
+      zoom = 1;
+      setCameraMode(mode);
+    }
+
+    function cancelImage() { ++imageEpoch; }
+    function hasModal() { return [...document.querySelectorAll('dialog')].some(dialog => dialog.open); }
+
+    function cameraError(error) {
+      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) return ['A secure connection is needed', 'Open this page over HTTPS or localhost to use your camera. You can scan an image below.'];
+      if (['NotAllowedError', 'PermissionDeniedError'].includes(error.name)) return ['Camera access is off', 'Allow camera access in your browser’s site settings, then try again. Or scan an image below.'];
+      if (['NotFoundError', 'DevicesNotFoundError', 'OverconstrainedError'].includes(error.name)) return ['No camera found', 'Connect a camera and try again, or choose an image with a QR code below.'];
+      if (['NotReadableError', 'TrackStartError', 'AbortError'].includes(error.name)) return ['Your camera is busy', 'Close other apps using the camera, then try again. You can also scan an image.'];
+      return ['Couldn’t start the camera', 'Try again, or choose an image with a QR code below.'];
+    }
+
+    // Request camera permission and start the live preview + scan loop.
+    // Aborts silently if the view changed or a modal opened mid-request
+    // (checked via the epoch counter captured before each await).
+    async function startCamera(deviceId = selectedCamera) {
+      cancelImage();
+      stopCamera('starting');
+      const epoch = cameraEpoch;
+      let requestedStream = null;
+      try {
+        if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) throw new Error('Camera requires a secure context');
+        await getReader();
+        if (epoch !== cameraEpoch || view !== 'scan' || document.hidden || hasModal()) return;
+        requestedStream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            ...(deviceId ? { deviceId: { exact: deviceId } } : { facingMode: { ideal: 'environment' } }),
+            width: { ideal: 1920 }, height: { ideal: 1080 }
+          }
+        });
+        if (epoch !== cameraEpoch || view !== 'scan' || document.hidden || hasModal()) {
+          requestedStream.getTracks().forEach(track => track.stop());
+          return;
+        }
+        stream = requestedStream;
+        videoTrack = stream.getVideoTracks()[0];
+        if (!videoTrack) throw new Error('No video track');
+        video.srcObject = stream;
+        await video.play();
+        if (epoch !== cameraEpoch || view !== 'scan' || document.hidden || hasModal()) {
+          requestedStream.getTracks().forEach(track => track.stop());
+          return;
+        }
+        selectedCamera = videoTrack.getSettings?.().deviceId || deviceId || '';
+        try { torchSupported = videoTrack.getCapabilities?.().torch === true; } catch { torchSupported = false; }
+        videoTrack.addEventListener('ended', () => {
+          if (epoch !== cameraEpoch) return;
+          stopCamera('error');
+          setCameraMode('error', 'Camera disconnected', 'Reconnect your camera and try again, or scan an image below.');
+        });
+        setCameraMode('live');
+        $('pause-camera').focus({ preventScroll: true });
+        navigator.mediaDevices.enumerateDevices?.().then(devices => {
+          if (epoch !== cameraEpoch) return;
+          cameras = devices.filter(device => device.kind === 'videoinput');
+          updateCameraControls();
+        }).catch(() => {});
+        scanFrame(epoch);
+      } catch (error) {
+        if (requestedStream) requestedStream.getTracks().forEach(track => track.stop());
+        if (epoch !== cameraEpoch) return;
+        selectedCamera = '';
+        stopCamera('error');
+        setCameraMode('error', ...cameraError(error));
+      }
+    }
+
+    async function toggleTorch() {
+      if (!videoTrack || !torchSupported || torchBusy) return;
+      const track = videoTrack;
+      const epoch = cameraEpoch;
+      const next = !torch;
+      torchBusy = true;
+      updateCameraControls();
+      try {
+        await track.applyConstraints({ advanced: [{ torch: next }] });
+        if (epoch !== cameraEpoch || track !== videoTrack) return;
+        const actual = track.getSettings?.().torch;
+        torch = typeof actual === 'boolean' ? actual : next;
+        if (torch !== next) notify('This camera could not change its flash.');
+      } catch {
+        if (epoch === cameraEpoch) notify('Flash isn’t available on this camera.');
+      } finally {
+        if (epoch === cameraEpoch) { torchBusy = false; updateCameraControls(); }
+      }
+    }
+
+    function changeZoom(value) {
+      if (cameraMode !== 'live') return;
+      zoom = Math.max(1, Math.min(4, Math.round(value * 2) / 2));
+      updateCameraControls();
+    }
+
+    // The digital crop exactly follows the object-fit: cover preview, including
+    // zoom and the scan frame's position on portrait and landscape screens.
+    function captureFrame() {
+      const width = video.videoWidth, height = video.videoHeight;
+      if (!width || !height) return null;
+      const rect = $('frame-wrap').getBoundingClientRect();
+      const preview = video.getBoundingClientRect();
+      const scale = Math.max(preview.width / width, preview.height / height);
+      const sourceWidth = Math.min(width, rect.width / scale);
+      const sourceHeight = Math.min(height, rect.height / scale);
+      const x = Math.max(0, Math.min(width - sourceWidth, width / 2 + (rect.left - preview.left - preview.width / 2) / scale));
+      const y = Math.max(0, Math.min(height - sourceHeight, height / 2 + (rect.top - preview.top - preview.height / 2) / scale));
+      const target = Math.min(900, Math.max(300, Math.round(sourceWidth)));
+      captureCanvas.width = target;
+      captureCanvas.height = Math.max(1, Math.round(target * sourceHeight / sourceWidth));
+      captureContext.drawImage(video, x, y, sourceWidth, sourceHeight, 0, 0, captureCanvas.width, captureCanvas.height);
+      return captureContext.getImageData(0, 0, captureCanvas.width, captureCanvas.height);
+    }
+
+    function resetReader(error = new Error('QR reader stopped')) {
+      ++readerEpoch;
+      if (reader) reader.terminate();
+      reader = null;
+      readerPromise = null;
+      for (const job of readerJobs.values()) {
+        clearTimeout(job.timer);
+        job.reject(error);
+      }
+      readerJobs.clear();
+    }
+
+    // Lazily create (once) the jsQR worker and keep it alive for reuse.
+    async function getReader() {
+      if (reader) return reader;
+      if (!readerPromise) {
+        const epoch = readerEpoch;
+        readerPromise = createQRWorker().then(worker => {
+          if (epoch !== readerEpoch) { worker.terminate(); throw new Error('QR reader canceled'); }
+          reader = worker;
+          reader.postMessage({ type: 'inversionMode', data: 'both' });
+          reader.onmessage = event => {
+            if (event.data.type !== 'qrResult') return;
+            const job = readerJobs.get(event.data.id);
+            if (!job) return;
+            clearTimeout(job.timer);
+            readerJobs.delete(event.data.id);
+            job.resolve(typeof event.data.data === 'string' ? event.data.data : null);
+          };
+          reader.onerror = () => { if (reader === worker) resetReader(new Error('Could not read QR code')); };
+          return reader;
+        }).catch(error => {
+          if (epoch === readerEpoch) readerPromise = null;
+          throw error;
+        });
+      }
+      return readerPromise;
+    }
+
+    // Decode raw ImageData via the worker; resolves with the QR text or null.
+    // A 15s timeout resets the worker if decoding hangs.
+    async function decode(image) {
+      const worker = await getReader();
+      return new Promise((resolve, reject) => {
+        const id = ++readerSequence;
+        const timer = setTimeout(() => resetReader(new Error('Image took too long to read')), 15000);
+        readerJobs.set(id, { resolve, reject, timer });
+        try { worker.postMessage({ id, type: 'decode', data: image }, [image.data.buffer]); }
+        catch (error) {
+          clearTimeout(timer);
+          readerJobs.delete(id);
+          reject(error);
+        }
+      });
+    }
+
+    // Scan loop: capture a frame from the video every ~180ms and decode it.
+    // A decoded value that differs from lastCameraValue triggers acceptScan;
+    // repeats just nudge the caption. Re-schedules itself until the camera stops.
+    async function scanFrame(epoch) {
+      if (epoch !== cameraEpoch || cameraMode !== 'live' || view !== 'scan' || document.hidden || hasModal()) return;
+      try {
+        if (video.readyState >= 2) {
+          const image = captureFrame();
+          const value = image ? await decode(image) : null;
+          if (epoch !== cameraEpoch || view !== 'scan' || hasModal()) return;
+          if (value !== null) {
+            clearFrames = 0;
+            if (value !== lastCameraValue) {
+              lastCameraValue = value;
+              await acceptScan(value, 'camera', true);
+              return;
+            }
+            $('scan-caption').textContent = 'Move to another QR code to keep scanning.';
+          } else if (++clearFrames >= 3) {
+            lastCameraValue = null;
+            $('scan-caption').textContent = 'Fit the QR code inside the frame.';
+          }
+        }
+      } catch {
+        if (epoch !== cameraEpoch) return;
+        stopCamera('error');
+        setCameraMode('error', 'Let’s try that again.', 'The scanner was interrupted. Restart your camera, or choose an image below.');
+        return;
+      }
+      if (epoch === cameraEpoch) frameTimer = setTimeout(() => scanFrame(epoch), 180);
+    }
+
+    // A QR was decoded: save it to the store, stop the camera, vibrate,
+    // and show the result dialog. resumeCamera restarts scanning when the
+    // dialog closes (passed through modalState).
+    async function acceptScan(value, source, resumeCamera) {
+      if (value.length > MAX_VALUE_LENGTH) { notify('This QR code contains too much data to save.'); return; }
+      stopCamera();
+      const receipt = ++displayEpoch;
+      const record = { id: newId(), value, source, scannedAt: Date.now() };
+      await updateStore(next => next.scans.unshift(record));
+      if (view !== 'scan' || receipt !== displayEpoch || document.hidden || hasModal()) return;
+      if (navigator.vibrate && !matchMedia('(prefers-reduced-motion: reduce)').matches) navigator.vibrate(40);
+      showResult(record, true, resumeCamera);
+    }
+
+    async function readImage(file) {
+      if (!file) return;
+      const resumeCamera = cameraMode === 'live';
+      stopCamera('reading');
+      const epoch = ++imageEpoch;
+      if (file.size > 20 * 1024 * 1024) {
+        setCameraMode('paused');
+        notify('Choose an image smaller than 20 MB.');
+        return;
+      }
+      let objectUrl = '';
+      try {
+        const bytes = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+        const png = bytes[0] === 137 && bytes[1] === 80 && bytes[2] === 78 && bytes[3] === 71;
+        const jpeg = bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255;
+        const gif = bytes[0] === 71 && bytes[1] === 73 && bytes[2] === 70;
+        const webp = String.fromCharCode(...bytes.slice(0, 4)) === 'RIFF' && String.fromCharCode(...bytes.slice(8, 12)) === 'WEBP';
+        const bmp = bytes[0] === 66 && bytes[1] === 77;
+        if (!(png || jpeg || gif || webp || bmp)) throw new Error('Choose a PNG, JPG, WebP, GIF, or BMP image.');
+        if (epoch !== imageEpoch) return;
+        objectUrl = URL.createObjectURL(file);
+        const image = new Image();
+        await new Promise((resolve, reject) => {
+          image.onload = resolve;
+          image.onerror = () => reject(new Error('This image couldn’t be opened. Try a PNG or JPG.'));
+          image.src = objectUrl;
+        });
+        if (epoch !== imageEpoch || view !== 'scan' || document.hidden || hasModal()) return;
+        if (image.naturalWidth * image.naturalHeight > 50000000) throw new Error('This image is too large. Crop it around the QR code and try again.');
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        const longestSide = Math.max(image.naturalWidth, image.naturalHeight);
+        const sizes = [...new Set([Math.min(longestSide, 1200), Math.min(longestSide, 2200)])];
+        let value = null;
+        for (const size of sizes) {
+          const scale = size / longestSide;
+          canvas.width = Math.max(40, Math.round(image.naturalWidth * scale));
+          canvas.height = Math.max(40, Math.round(image.naturalHeight * scale));
+          context.fillStyle = '#fff';
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          value = await decode(context.getImageData(0, 0, canvas.width, canvas.height));
+          if (epoch !== imageEpoch || view !== 'scan' || document.hidden || hasModal()) return;
+          if (value !== null) break;
+        }
+        if (value === null) throw new Error('No QR code found. Try a clearer image or crop closer to the code.');
+        await acceptScan(value, 'image', resumeCamera);
+      } catch (error) {
+        if (epoch !== imageEpoch) return;
+        setCameraMode('paused');
+        notify(error.message || 'Couldn’t read that image. Please try another.');
+      } finally {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      }
+    }
+
+    function openModal(dialog, resumeCamera = cameraMode === 'live', focus = document.activeElement) {
+      if (cameraMode === 'live' || cameraMode === 'starting' || cameraMode === 'reading') {
+        cancelImage();
+        stopCamera();
+      }
+      modalState.set(dialog, { focus, resumeCamera, recordId: focus?.dataset?.recordId, bookmarkFocus: focus?.dataset?.action === 'bookmark' });
+      dialog.showModal();
+    }
+
+    function updateResultBookmark() {
+      const saved = isBookmarked(currentRecord.value);
+      $('bookmark-result').setAttribute('aria-pressed', String(saved));
+      $('bookmark-result').querySelector('span').textContent = saved ? 'Bookmarked' : 'Bookmark';
+    }
+
+    function showResult(record, fresh, resumeCamera, trigger = document.activeElement) {
+      currentRecord = record;
+      const details = describe(record.value);
+      $('result-eyebrow').textContent = fresh ? 'Scan complete' : view === 'bookmarks' ? 'From your collection' : 'From your history';
+      $('result-title').textContent = fresh ? 'Look what you found.' : details.label === 'Website' ? details.title : details.label;
+      $('result-type').replaceChildren(icon(details.icon), document.createTextNode(details.label));
+      $('result-value').value = record.value;
+      $('result-value').style.height = '';
+      const time = record.scannedAt ?? record.savedAt;
+      $('result-meta').textContent = (record.scannedAt ? 'Scanned ' : 'Bookmarked ') + dateFormat.format(time) + ' at ' + timeFormat.format(time) + (record.source === 'image' ? ' · From image' : '');
+      $('result-open').hidden = !details.url;
+      $('link-note').hidden = !details.url;
+      if (details.url) $('result-open').href = details.url;
+      else $('result-open').removeAttribute('href');
+      $('copy-status').hidden = true;
+      $('copy-result').querySelector('span').textContent = 'Copy content';
+      $('result-done').querySelector('span').textContent = view === 'scan' ? 'Scan next' : view === 'history' ? 'Back to history' : 'Back to bookmarks';
+      updateResultBookmark();
+      openModal($('result-dialog'), resumeCamera, trigger);
+      $('result-title').focus({ preventScroll: true });
+    }
+
+    async function copyResult() {
+      if (!currentRecord) return;
+      const value = currentRecord.value;
+      let copied = false;
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(value);
+          copied = true;
+        }
+      } catch {}
+      if (!copied) {
+        $('result-value').focus();
+        $('result-value').select();
+        $('result-value').setSelectionRange(0, value.length);
+        try { copied = document.execCommand('copy'); } catch {}
+      }
+      $('copy-status').textContent = copied ? 'Copied. Ready to paste wherever you need it.' : 'Copy isn’t available here. The content is selected — press and hold, or use Ctrl/Cmd+C to copy.';
+      $('copy-status').hidden = false;
+      $('copy-result').querySelector('span').textContent = copied ? 'Copied!' : 'Select & copy';
+    }
+
+    function closeForNavigation() {
+      for (const dialog of document.querySelectorAll('dialog')) {
+        const state = modalState.get(dialog);
+        if (state) { state.resumeCamera = false; state.focus = null; }
+        if (dialog.open) dialog.close();
+      }
+    }
+
+    // Hash-based router: #scan (default), #history, #bookmarks.
+    // Switching views stops the camera and re-renders the library.
+    function route(initial = false) {
+      const next = location.hash.slice(1);
+      const nextView = ['history', 'bookmarks'].includes(next) ? next : 'scan';
+      if (!initial && nextView === view) return;
+      ++displayEpoch;
+      cancelImage();
+      closeForNavigation();
+      if (cameraMode !== 'idle') stopCamera();
+      view = nextView;
+      $('scan-view').hidden = view !== 'scan';
+      $('library-view').hidden = view === 'scan';
+      $('main').scrollTop = 0;
+      document.querySelectorAll('[data-view]').forEach(link => {
+        if (link.dataset.view === view) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
+      });
+      if (view !== 'scan') renderLibrary();
+      if (!initial) (view === 'scan' ? $('scan-title') : $('library-title')).focus({ preventScroll: true });
+    }
+
+    $('camera-button').addEventListener('click', () => {
+      if (cameraMode === 'starting' || cameraMode === 'reading') { cancelImage(); stopCamera(); }
+      else startCamera();
+    });
+    $('pause-camera').addEventListener('click', () => { stopCamera(); $('camera-button').focus({ preventScroll: true }); });
+    $('flash-button').addEventListener('click', toggleTorch);
+    $('zoom-in').addEventListener('click', () => changeZoom(zoom + .5));
+    $('zoom-out').addEventListener('click', () => changeZoom(zoom - .5));
+    $('zoom-value').addEventListener('click', () => changeZoom(1));
+    $('flip-button').addEventListener('click', () => {
+      if (cameras.length < 2 || cameraMode !== 'live') return;
+      const index = cameras.findIndex(camera => camera.deviceId === selectedCamera);
+      startCamera(cameras[(index + 1) % cameras.length].deviceId);
+    });
+    $('upload-button').addEventListener('click', () => { $('image-input').value = ''; $('image-input').click(); });
+    $('image-input').addEventListener('change', event => {
+      const file = event.target.files[0];
+      event.target.value = '';
+      if (view === 'scan' && !hasModal()) readImage(file);
+    });
+    $('help-button').addEventListener('click', event => openModal($('help-dialog'), cameraMode === 'live', event.currentTarget));
+    $('copy-result').addEventListener('click', copyResult);
+    $('bookmark-result').addEventListener('click', async () => {
+      if (!currentRecord) return;
+      $('bookmark-result').disabled = true;
+      try { await toggleBookmark(currentRecord.value); }
+      finally { $('bookmark-result').disabled = false; }
+    });
+    $('result-done').addEventListener('click', () => $('result-dialog').close());
+    $('library-search').addEventListener('input', event => { filters[view].query = event.target.value; renderLibrary(); });
+    $('search-clear').addEventListener('click', () => { filters[view].query = ''; renderLibrary(); $('library-search').focus(); });
+    document.querySelectorAll('[data-filter]').forEach(button => button.addEventListener('click', () => {
+      filters[view].type = button.dataset.filter;
+      renderLibrary();
+    }));
+    $('clear-history').addEventListener('click', event => openModal($('clear-dialog'), false, event.currentTarget));
+    $('confirm-clear').addEventListener('click', async () => {
+      $('confirm-clear').disabled = true;
+      try {
+        await updateStore(next => { next.scans = []; });
+        $('clear-dialog').close();
+        notify(sessionOnly ? 'History cleared for this tab. Your bookmarks are still here.' : 'History cleared. Your bookmarks are still here.');
+      } finally { $('confirm-clear').disabled = false; }
+    });
+    for (const dialog of document.querySelectorAll('dialog')) {
+      let backdropDown = false;
+      dialog.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => dialog.close()));
+      const outside = event => {
+        const box = dialog.getBoundingClientRect();
+        return event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom;
+      };
+      dialog.addEventListener('pointerdown', event => { backdropDown = event.target === dialog && outside(event); });
+      dialog.addEventListener('click', event => {
+        if (backdropDown && event.target === dialog && outside(event)) dialog.close();
+        backdropDown = false;
+      });
+      dialog.addEventListener('keydown', event => {
+        if (event.key !== 'Tab') return;
+        const focusable = [...dialog.querySelectorAll('button:not(:disabled), a[href], input:not(:disabled), textarea:not(:disabled), [tabindex="0"]')]
+          .filter(node => node.getClientRects().length);
+        if (!focusable.length) { event.preventDefault(); return; }
+        const index = focusable.indexOf(document.activeElement);
+        if (event.shiftKey && index <= 0) {
+          event.preventDefault();
+          focusable.at(-1).focus();
+        } else if (!event.shiftKey && (index < 0 || index === focusable.length - 1)) {
+          event.preventDefault();
+          focusable[0].focus();
+        }
+      });
+      dialog.addEventListener('close', () => {
+        const state = modalState.get(dialog);
+        if (dialog === $('result-dialog')) currentRecord = null;
+        const rowFocus = state?.recordId && view !== 'scan'
+          ? [...$('scan-list').querySelectorAll(state.bookmarkFocus ? '.row-save' : '.row-open')].find(button => button.dataset.recordId === state.recordId)
+          : null;
+        if (state?.resumeCamera && view === 'scan' && !document.hidden && !hasModal()) {
+          startCamera();
+        } else if (state?.focus?.isConnected && state.focus.getClientRects().length) {
+          state.focus.focus({ preventScroll: true });
+        } else if (rowFocus) {
+          rowFocus.focus({ preventScroll: true });
+        } else if (view !== 'scan') {
+          $('library-title').focus({ preventScroll: true });
+        } else {
+          $('camera-button').focus({ preventScroll: true });
+        }
+      });
+    }
+    window.addEventListener('hashchange', () => route());
+    window.addEventListener('storage', event => {
+      if (sessionOnly || (event.key !== STORAGE_KEY && event.key !== null)) return;
+      try { store = parseStore(localStorage.getItem(STORAGE_KEY)); refreshCollection(); }
+      catch { useSessionStorage('Saved data changed and couldn’t be read. It has been left untouched; new changes stay in this tab.'); }
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) return;
+      cancelImage();
+      ++displayEpoch;
+      if (['live', 'starting', 'reading'].includes(cameraMode)) stopCamera();
+      for (const dialog of document.querySelectorAll('dialog')) {
+        const state = modalState.get(dialog);
+        if (state) state.resumeCamera = false;
+      }
+    });
+    window.addEventListener('pagehide', () => { cancelImage(); ++displayEpoch; stopCamera(); resetReader(); });
+    loadStore();
+    refreshCollection();
+    route(true);
+    // Auto-start the camera when landing on the scan view (skipped for
+    // #history/#bookmarks, and startCamera aborts if a modal is open).
+    if (view === 'scan' && !document.hidden) startCamera();
+  })();
+  </script>
+<!--
+Bundled jsQR license:
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "{}"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright {yyyy} {name of copyright owner}
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+
+-->
+<script>
+// Register the service worker for offline/PWA support (ignored if unsupported).
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
