@@ -2,6 +2,14 @@
 
 Free, private QR code tools that run entirely in your browser. No sign-ups — everything is processed on your device.
 
+## Live site
+
+No install needed — use the apps directly on GitHub Pages:
+
+- [CodeRead — QR & barcode reader](https://jctansg.github.io/qrkit/coderead.html)
+- [Lens — QR Scanner](https://jctansg.github.io/qrkit/lens.html)
+- [SGQR Generator](https://jctansg.github.io/qrkit/sgqr/)
+
 ## Tools
 
 | Tool | Description |
@@ -30,13 +38,12 @@ Then open http://localhost:8000/coderead.html (or lens.html, or sgqr/).
 
 Camera access requires a secure context — use HTTPS or `localhost`. Scanning from image files also works when opening the HTML directly.
 
-## Deploy to GitHub Pages
+## Self-host (optional)
 
-1. Create a new repository and push this folder's contents.
-2. Enable **Pages** in repo settings (Deploy from branch → `main` / root).
-3. Pages are served at `https://<user>.github.io/<repo>/` — e.g. `.../coderead.html`, `.../lens.html`, `.../sgqr/`.
+These are plain static files — clone the repo and serve the folder with any static server, or deploy it to any static host. No build step required.
 
-Note: camera scanning will only work over HTTPS — GitHub Pages provides this automatically. Opening `file://` directly still allows image-file scanning.
+Camera scanning requires HTTPS — GitHub Pages provides this automatically. Opening `file://` directly still allows image-file scanning.
+
 
 ## Structure
 
